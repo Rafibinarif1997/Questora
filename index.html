@@ -16,7 +16,7 @@
     body {
       font-family: Arial, sans-serif;
       background: #080808;
-      color: #ffffff;
+      color: white;
       min-height: 100vh;
     }
 
@@ -35,14 +35,18 @@
       letter-spacing: 2px;
     }
 
-    .connect-btn {
-      background: #ffffff;
-      color: #000000;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-weight: 700;
+    button {
       cursor: pointer;
+      font-weight: 700;
+    }
+
+    .connect-btn,
+    .primary-btn {
+      background: white;
+      color: black;
+      border: none;
+      padding: 13px 20px;
+      border-radius: 8px;
     }
 
     main {
@@ -83,15 +87,31 @@
       margin-top: 35px;
     }
 
-    .primary-btn {
-      background: #fff;
-      color: #000;
-      border: none;
-      padding: 15px 25px;
-      border-radius: 8px;
-      font-weight: 700;
-      cursor: pointer;
-      font-size: 15px;
+    .wallet-box {
+      display: none;
+      margin: 35px auto 0;
+      max-width: 500px;
+      border: 1px solid #222;
+      background: #0d0d0d;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: left;
+    }
+
+    .wallet-box.active {
+      display: block;
+    }
+
+    .wallet-label {
+      color: #777;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .wallet-address {
+      word-break: break-all;
+      font-size: 14px;
+      color: #fff;
     }
 
     .stats {
@@ -144,109 +164,163 @@
 
 <body>
 
-  <header>
-    <div class="logo">PASS</div>
+<header>
 
-    <button class="connect-btn" onclick="connectWallet()">
-      CONNECT
-    </button>
-  </header>
+  <div class="logo">
+    PASS
+  </div>
 
-  <main>
+  <button
+    id="connectButton"
+    class="connect-btn"
+    onclick="connectWallet()">
+    CONNECT
+  </button>
 
-    <section class="hero">
+</header>
 
-      <div class="badge">
-        MISSION • POINTS • WL
+
+<main>
+
+  <section class="hero">
+
+    <div class="badge">
+      MISSION • POINTS • WL
+    </div>
+
+    <h1>
+      EARN YOUR<br>
+      PASS.
+    </h1>
+
+    <p>
+      Complete missions, earn points, keep your Pass,
+      and unlock whitelist access.
+    </p>
+
+    <div class="cta">
+
+      <button
+        class="primary-btn"
+        onclick="connectWallet()">
+        CONNECT WALLET
+      </button>
+
+    </div>
+
+
+    <div
+      id="walletBox"
+      class="wallet-box">
+
+      <div class="wallet-label">
+        CONNECTED WALLET
       </div>
 
-      <h1>
-        EARN YOUR<br>
-        PASS.
-      </h1>
-
-      <p>
-        Complete missions, earn points, keep your Pass,
-        and unlock whitelist access.
-      </p>
-
-      <div class="cta">
-        <button class="primary-btn" onclick="connectWallet()">
-          CONNECT WALLET
-        </button>
+      <div
+        id="walletAddress"
+        class="wallet-address">
       </div>
 
-    </section>
+    </div>
 
-    <section class="stats">
+  </section>
 
-      <div class="stat">
-        <span>PASS SUPPLY</span>
-        <strong>1,000</strong>
-      </div>
 
-      <div class="stat">
-        <span>MISSIONS</span>
-        <strong>00</strong>
-      </div>
+  <section class="stats">
 
-      <div class="stat">
-        <span>WL TARGET</span>
-        <strong>5,000</strong>
-      </div>
+    <div class="stat">
+      <span>PASS SUPPLY</span>
+      <strong>1,000</strong>
+    </div>
 
-    </section>
+    <div class="stat">
+      <span>MISSIONS</span>
+      <strong>00</strong>
+    </div>
 
-  </main>
+    <div class="stat">
+      <span>WL TARGET</span>
+      <strong>5,000</strong>
+    </div>
 
-  <footer>
-    PASS © 2026
-  </footer>
+  </section>
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</main>
 
-  <!-- Our Supabase config -->
-  <script src="config.js"></script>
 
-  <script>
+<footer>
+  PASS © 2026
+</footer>
 
-    const supabaseClient = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_KEY
+
+<!-- Ethers -->
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
+
+<script>
+
+async function connectWallet() {
+
+  if (!window.ethereum) {
+
+    alert(
+      "No Web3 wallet detected.\n\n" +
+      "Open this website inside your wallet browser."
     );
 
-    async function testSupabase() {
+    return;
+  }
 
-      const { data, error } = await supabaseClient
-        .from("missions")
-        .select("id")
-        .limit(1);
 
-      if (error) {
+  try {
 
-        console.error("Supabase error:", error);
+    const accounts =
+      await window.ethereum.request({
+        method: "eth_requestAccounts"
+      });
 
-        alert(
-          "❌ Supabase Error\n\n" +
-          error.message
-        );
 
-        return;
-      }
+    const address = accounts[0];
 
-      console.log("Supabase connected:", data);
 
-      alert("✅ Supabase Connected!");
-    }
+    document.getElementById(
+      "walletAddress"
+    ).textContent = address;
 
-    function connectWallet() {
 
-      testSupabase();
+    document.getElementById(
+      "walletBox"
+    ).classList.add("active");
 
-    }
 
-  </script>
+    document.getElementById(
+      "connectButton"
+    ).textContent =
+      address.slice(0, 6) +
+      "..." +
+      address.slice(-4);
+
+
+    console.log(
+      "Connected wallet:",
+      address
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    alert(
+      "Wallet connection failed."
+    );
+
+  }
+
+}
+
+</script>
 
 </body>
 </html>
