@@ -203,10 +203,49 @@
     PASS © 2026
   </footer>
 
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Our Supabase config -->
+  <script src="config.js"></script>
+
   <script>
-    function connectWallet() {
-      alert("Wallet connection will be added in the next step.");
+
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+    async function testSupabase() {
+
+      const { data, error } = await supabaseClient
+        .from("missions")
+        .select("id")
+        .limit(1);
+
+      if (error) {
+
+        console.error("Supabase error:", error);
+
+        alert(
+          "❌ Supabase Error\n\n" +
+          error.message
+        );
+
+        return;
+      }
+
+      console.log("Supabase connected:", data);
+
+      alert("✅ Supabase Connected!");
     }
+
+    function connectWallet() {
+
+      testSupabase();
+
+    }
+
   </script>
 
 </body>
