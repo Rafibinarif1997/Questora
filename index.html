@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arthood NFT — Create • Collect • Trade</title>
+  <meta name="description" content="Arthood NFT — NFT marketplace and launchpad built for the next generation.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="noise"></div>
+  <header class="topbar">
+    <a class="brand" href="#">
+      <span class="brand-mark">A</span>
+      <span><b>ARTHOOD</b> <em>NFT</em><small>CREATE • COLLECT • TRADE</small></span>
+    </a>
+    <nav id="nav">
+      <a href="#explore">Explore</a><a href="#collections">Collections</a><a href="#launchpad">Launchpad</a>
+      <a href="#create">Create</a><a href="#missions">Missions</a><a href="#community">Community</a>
+    </nav>
+    <div class="top-actions">
+      <div class="search">⌕ <input placeholder="Search NFTs, collections, or creators..."><kbd>/</kbd></div>
+      <button class="icon-btn" id="themeBtn">☾</button>
+      <button class="wallet" id="walletBtn">Connect Wallet</button>
+      <button class="menu" id="menuBtn">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="chain-pill">◈ BUILT ON ROBINHOOD CHAIN</div>
+        <h1>NFTS<br>FOR A BRIGHTER<br><span>TOMORROW</span></h1>
+        <p>Discover unique NFTs, support creators, launch your collection, and be part of the Arthood community.</p>
+        <div class="hero-buttons"><button class="primary" onclick="scrollToId('explore')">↗ Explore NFTs</button><button class="secondary" onclick="scrollToId('launchpad')">Launch Your Project →</button></div>
+        <div class="features">
+          <div><b>♢ Create</b><small>Bring your ideas to life</small></div>
+          <div><b>◇ Collect</b><small>Own what you love</small></div>
+          <div><b>↔ Trade</b><small>Safe and transparent</small></div>
+          <div><b>▟ Grow</b><small>Build your community</small></div>
+        </div>
+      </div>
+      <div class="hero-art"><div class="moon">A</div><div class="castle"></div><div class="hood">A</div></div>
+      <div class="stats">
+        <div><span>▣</span><small>Total Volume</small><strong>12,458 RH</strong></div>
+        <div><span>▧</span><small>Total NFTs</small><strong>245,678</strong></div>
+        <div><span>♙</span><small>Total Creators</small><strong>12,340</strong></div>
+        <div><span>▱</span><small>Total Collections</small><strong>1,892</strong></div>
+      </div>
+    </section>
+
+    <section class="section" id="collections">
+      <div class="section-head"><h2>🔥 Trending Collections</h2><a href="#explore">View All →</a></div>
+      <div class="collection-grid" id="collectionGrid"></div>
+    </section>
+
+    <section class="split">
+      <div class="panel launch-panel" id="launchpad">
+        <div class="section-head"><h2>🚀 Live Launchpad</h2><a href="#launchpad">View All →</a></div>
+        <div class="launch-card">
+          <div class="cover sky"></div><span class="live">● Live Now</span><span class="ends">Ends in 3d 12h 25m</span>
+          <h3>SKY NOMAD</h3><p>A journey beyond the clouds. 1,111 unique Nomads on Robinhood Chain.</p>
+          <div class="mini-stats"><b>1,111<small>Supply</small></b><b>Free<small>Mint Price</small></b><b>3.4K<small>Participants</small></b></div>
+          <button class="primary full">Join Now →</button>
+        </div>
+      </div>
+      <div class="panel" id="missions">
+        <div class="section-head"><h2>🎯 Complete Missions</h2><a href="#missions">→</a></div>
+        <p class="muted">Earn Rewards • Get Whitelisted • Be Early</p>
+        <div class="mission-list"><div>✓ Join community <span>+50 XP</span></div><div>✓ Follow project <span>+100 XP</span></div><div>◷ Complete quiz <span>+150 XP</span></div></div>
+      </div>
+    </section>
+
+    <section class="banner">
+      <div class="brand-mark small">A</div><div><h3>Empowering Creators on <span>Robinhood Chain</span></h3><p>A decentralized NFT marketplace and launchpad for the next generation.</p></div><button class="secondary">Read Our Vision →</button>
+    </section>
+
+    <section class="section" id="explore">
+      <div class="section-head"><h2>✨ Newly Listed</h2><a href="#explore">View All →</a></div>
+      <div class="nft-grid" id="nftGrid"></div>
+    </section>
+
+    <section class="lower-grid">
+      <div class="panel">
+        <div class="section-head"><h2>👑 Top Creators</h2><a href="#community">View All →</a></div>
+        <div class="creators">
+          <div>🧙 <b>HoodLabs</b><small>12.4K volume</small><button>Follow</button></div>
+          <div>🧑‍🎨 <b>PixelMaster</b><small>8.7K volume</small><button>Follow</button></div>
+          <div>🐻 <b>Rhood Studio</b><small>6.1K volume</small><button>Follow</button></div>
+          <div>🌌 <b>NomadArts</b><small>4.9K volume</small><button>Follow</button></div>
+        </div>
+      </div>
+      <div class="create-card" id="create"><h2>CREATE<br>WITHOUT LIMITS</h2><p>Mint your NFTs in minutes on Robinhood Chain.</p><button class="primary">Create Now →</button></div>
+    </section>
+  </main>
+
+  <footer id="community">
+    <div class="brand"><span class="brand-mark">A</span><span><b>ARTHOOD</b> <em>NFT</em><small>CREATE • COLLECT • TRADE</small></span></div>
+    <span>◈ Built on Robinhood Chain</span>
+    <nav><a>About</a><a>FAQ</a><a>Docs</a><a>Terms</a><a>Privacy</a><a>Contact</a></nav>
+    <span>𝕏 ◉ ✈ ▶</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
