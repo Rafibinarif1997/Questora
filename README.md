@@ -1,8 +1,27 @@
-# HOOD MEMORY — Mainnet Full Frontend
+# HOOD MEMORY — GitHub Pages
 
-Complete static multi-page frontend:
-Home, Discover, Mainnet Mint, Missions, individual mission URLs, Projects, individual project URLs, Submit, Dashboard, Profile, XP, Leaderboard, Rewards, Docs and Admin.
+This package uses clean folder routes. No `.html` appears in the browser URL.
 
-Frontend simulation uses localStorage for wallet/profile/holder/XP/mission/admin state.
+## Routes
+- `/`
+- `/discover/`
+- `/mint/`
+- `/missions/`
+- `/missions/m1/` ... `/missions/m6/`
+- `/projects/`
+- `/projects/northstar/`
+- `/projects/arcfield/`
+- `/projects/signallab/`
+- `/submit/`
+- `/dashboard/`
+- `/profile/`
+- `/xp/`
+- `/leaderboard/`
+- `/rewards/`
+- `/docs/`
+- `/admin/`
 
-No real blockchain transaction, secure admin authentication, X/Discord verification or Supabase database is included yet. Those are intentionally isolated as the next integration phase.
+## GitHub Pages
+Upload the contents of this folder to the repository root and enable GitHub Pages from the `main` branch, `/ (root)`.
+
+The navigation is relative-path aware, so it works both for a GitHub user site (`username.github.io`) and a project site (`username.github.io/repository-name/`).
