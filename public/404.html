@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RHOOD Forge</title>
+    <script>
+      // GitHub Pages serves this file for unknown SPA routes. Preserve the
+      // requested path, then send the browser back to the repository root.
+      sessionStorage.redirect = location.pathname + location.search + location.hash;
+      const parts = location.pathname.split('/').filter(Boolean);
+      const repoBase = parts.length ? '/' + parts[0] + '/' : '/';
+      location.replace(repoBase);
+    </script>
+  </head>
+  <body></body>
+</html>
