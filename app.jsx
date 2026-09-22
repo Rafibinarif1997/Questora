@@ -17,8 +17,8 @@ const activity = [
 ];
 
 function useLocalTokens(){
-  const [custom, setCustom] = useState(()=>JSON.parse(localStorage.getItem("rhood-custom-tokens")||"[]"));
-  useEffect(()=>localStorage.setItem("rhood-custom-tokens", JSON.stringify(custom)),[custom]);
+  const [custom, setCustom] = React.useState(()=>JSON.parse(localStorage.getItem("rhood-custom-tokens")||"[]"));
+  React.useEffect(()=>localStorage.setItem("rhood-custom-tokens", JSON.stringify(custom)),[custom]);
   return [custom, setCustom];
 }
 
@@ -27,8 +27,8 @@ function App(){
 }
 
 function Shell(){
-  const [wallet,setWallet] = useState("");
-  const [menu,setMenu] = useState(false);
+  const [wallet,setWallet] = React.useState("");
+  const [menu,setMenu] = React.useState(false);
   const connect = ()=>setWallet(wallet ? "" : "0x9A4…71F");
   return <>
     <div className="noise"/>
@@ -128,10 +128,10 @@ function TokenCard({token}){
 }
 
 function Explore(){
-  const [filter,setFilter]=useState("Trending");
-  const [q,setQ]=useState("");
+  const [filter,setFilter]=React.useState("Trending");
+  const [q,setQ]=React.useState("");
   const all=seedTokens;
-  const visible=useMemo(()=>all.filter(t=>(t.name+t.symbol).toLowerCase().includes(q.toLowerCase())),[q]);
+  const visible=React.useMemo(()=>all.filter(t=>(t.name+t.symbol).toLowerCase().includes(q.toLowerCase())),[q]);
   return <div className="page wrap">
     <div className="page-title"><div><span className="kicker">MARKET INDEX / 01</span><h1>Explore the forge.</h1><p>Find the markets moving fastest, the launches closest to graduation, and the ideas nobody has priced yet.</p></div><Link to="/create" className="btn primary"><Plus size={16}/> New launch</Link></div>
     <div className="explore-tools"><div className="searchbox"><Search size={17}/><input placeholder="Search name, symbol or contract" value={q} onChange={e=>setQ(e.target.value)}/></div><div className="filters">{["Trending","Newest","Volume","Market Cap","Graduating"].map(f=><button key={f} className={filter===f?"active":""} onClick={()=>setFilter(f)}>{f}</button>)}</div></div>
@@ -141,7 +141,7 @@ function Explore(){
 
 function TokenPage(){
   const {id}=useParams(); const token=seedTokens.find(x=>x.id===id)||seedTokens[0];
-  const [side,setSide]=useState("buy"); const [amount,setAmount]=useState("0.10");
+  const [side,setSide]=React.useState("buy"); const [amount,setAmount]=React.useState("0.10");
   return <div className="page wrap">
     <div className="token-hero"><div className="token-title"><div className="token-avatar huge">{token.emoji}</div><div><div className="eyebrow">LIVE MARKET <span className="live-dot"/></div><h1>{token.name} <span>${token.symbol}</span></h1><p>Created by <b>{token.creator}</b> · launched {token.age} ago</p></div></div><div className="token-actions"><button className="icon-btn"><Bell size={17}/></button><button className="icon-btn"><Copy size={17}/></button></div></div>
     <div className="token-stats"><Stat label="Price" value={token.price} change={token.change}/><Stat label="Market cap" value={token.mc}/><Stat label="24h volume" value={token.vol}/><Stat label="Holders" value={token.holders}/><Stat label="Curve" value={`${token.progress}%`}/></div>
@@ -158,8 +158,8 @@ function InfoLine({icon,title,value}){return <div className="info-line"><span cl
 function ActivityRow({item}){return <div className="activity-row"><span className={`activity-badge ${item[0].toLowerCase()}`}>{item[0]==="BUY"?<ArrowDown size={13}/>:item[0]==="SELL"?<ArrowUp size={13}/>:<Sparkles size={13}/>}</span><div><b>{item[0]} <span>${item[1]}</span></b><small>{item[3]}</small></div><strong>{item[2]}</strong><time>{item[4]}</time></div>}
 
 function Create(){
-  const [form,setForm]=useState({name:"",symbol:"",description:"",website:"",x:"",telegram:""});
-  const [custom,setCustom]=useLocalTokens(); const [created,setCreated]=useState(false);
+  const [form,setForm]=React.useState({name:"",symbol:"",description:"",website:"",x:"",telegram:""});
+  const [custom,setCustom]=useLocalTokens(); const [created,setCreated]=React.useState(false);
   const update=k=>e=>setForm({...form,[k]:e.target.value});
   const submit=e=>{e.preventDefault(); if(!form.name||!form.symbol)return; const t={id:"local-"+Date.now(),name:form.name,symbol:form.symbol.toUpperCase(),price:"—",mc:"—",vol:"0",holders:0,progress:0,age:"now",emoji:"✦",status:"Draft",change:"0%",creator:"You"}; setCustom([t,...custom]);setCreated(true)};
   return <div className="page wrap narrow">
