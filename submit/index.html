@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#060811"><title>Submit Mission · Hood Memory</title><link rel="stylesheet" href="../css/style.css"></head><body><div class="noise"></div><header class="topbar"><div class="container" style="display:flex;align-items:center;justify-content:space-between;width:100%"><a class="brand" href="../index.html"><span class="brandmark"><i></i><i></i><i></i></span>HOOD MEMORY</a>
+    <nav class="nav">
+      <a href="../index.html">Home</a><a href="../demo/index.html">Demo</a><a href="../missions/index.html">Missions</a>
+      <a href="../projects/index.html">Projects</a><a href="../rewards/index.html">Rewards</a><a href="../docs/index.html">Docs</a>
+    </nav><div class="top-actions"><a class="btn cyan small" href="../mint/index.html">GET ACCESS</a><button class="menu" data-menu>☰</button></div></div></header><main class="page"><div class="container">
+<div class="eyebrow">FOR PROJECT TEAMS · FREE EARLY SUBMISSION</div>
+<h1 class="title">BRING YOUR<br><em>MISSION.</em></h1>
+<p class="lead">Create a campaign brief now. In production, this form will write directly to Supabase and enter the moderation queue.</p>
+<form class="card" style="margin-top:30px" id="missionForm">
+<div class="form-grid">
+<div class="field"><label>PROJECT NAME</label><input required name="project" placeholder="Your project"></div>
+<div class="field"><label>WEBSITE</label><input required name="website" placeholder="https://"></div>
+<div class="field"><label>MISSION TITLE</label><input required name="title" placeholder="Test our product"></div>
+<div class="field"><label>XP REWARD</label><input required name="xp" type="number" min="1" placeholder="500"></div>
+<div class="field full"><label>MISSION INSTRUCTIONS</label><textarea required name="instructions" placeholder="Describe exactly what users need to do and how it will be verified."></textarea></div>
+<div class="field"><label>DEADLINE</label><input name="deadline" type="date"></div>
+<div class="field"><label>VERIFICATION</label><select name="verification"><option>Manual review</option><option>Transaction hash</option><option>Wallet activity</option><option>Proof / screenshot</option></select></div>
+</div>
+<div style="display:flex;gap:10px;margin-top:18px"><button class="btn primary" type="submit">SAVE DEMO SUBMISSION →</button><a class="btn" href="../missions/index.html">Cancel</a></div>
+</form>
+<div class="notice" style="margin-top:14px">This starter saves the draft locally so the whole flow can be tested without Supabase. Later this exact form can be connected to your database.</div>
+<script>document.getElementById('missionForm').addEventListener('submit',e=>{e.preventDefault();toast('SUBMISSION SAVED','Demo submission stored locally. Supabase will replace this in production.');e.target.reset()})</script>
+</div></main><footer class="container"><span>HOOD MEMORY · SEASON 01</span><span>DEMO BUILD · ROBINHOOD CHAIN</span></footer><script src="../js/app.js"></script></body></html>

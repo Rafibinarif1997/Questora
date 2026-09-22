@@ -1,0 +1,13 @@
+{
+  "collection": {
+    "name": "Hood Memory",
+    "supply": 1111,
+    "chain": "Robinhood Chain",
+    "season": "01",
+    "duration_days": 30
+  },
+  "xp": {
+    "holding_per_nft_per_day": 10
+  },
+  "status": "frontend-only"
+}
