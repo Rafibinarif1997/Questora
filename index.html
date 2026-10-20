@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -7,586 +6,233 @@
 <title>Robinhood Chain — Paper Backtest v3</title>
 <style>
 :root{--bg:#0a0d12;--panel:#111821;--line:#253140;--text:#e8eef6;--muted:#9aa8b8;--green:#36d399;--red:#ff6b7a;--blue:#70a7ff;--yellow:#ffd166}
-*{box-sizing:border-box}
-body{margin:0;background:radial-gradient(circle at top,#152130 0,#0a0d12 55%);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-main{max-width:1200px;margin:auto;padding:22px 14px 50px}
-.hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}
-.eyebrow{color:var(--green);font-weight:800;letter-spacing:.12em;font-size:11px}
-h1{font-size:clamp(24px,4vw,38px);line-height:1.12;margin:7px 0}
-p{color:var(--muted);margin:7px 0}
-.pill{border:1px solid #2c745d;color:var(--green);padding:6px 10px;border-radius:99px;font-size:11px;font-weight:800;white-space:nowrap}
-.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px}
-.panel{background:linear-gradient(180deg,#131c27,#10161e);border:1px solid var(--line);border-radius:15px;padding:16px;min-width:0}
-.span12{grid-column:span 12}.span8{grid-column:span 8}.span4{grid-column:span 4}.span6{grid-column:span 6}
-h2{font-size:16px;margin:0 0 12px}
-label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
-input,select,button{font:inherit}
-input,select{width:100%;background:#0b1118;color:var(--text);border:1px solid #2a3747;border-radius:9px;padding:10px}
-button{cursor:pointer;border:0;border-radius:10px;padding:11px 14px;font-weight:800;background:var(--green);color:#06140f}
-button.secondary{background:#202c3b;color:var(--text);border:1px solid #334254}
-button:disabled{opacity:.45;cursor:not-allowed}
-.controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.field{min-width:0}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.metric{background:#0b1118;border:1px solid #233040;border-radius:11px;padding:12px}
-.metric small{display:block;color:var(--muted);font-size:11px}
-.metric strong{font-size:21px;display:block;margin-top:3px;overflow-wrap:anywhere}
-.good{color:var(--green)}.bad{color:var(--red)}.muted{color:var(--muted)}
-.notice{border:1px solid #665629;background:#211c10;color:#f8dda0;padding:11px 12px;border-radius:10px;margin-top:12px;font-size:12px}
-.status{margin-top:10px;color:var(--muted);font-size:12px;min-height:18px}
-.tablewrap{overflow:auto;max-height:480px;border:1px solid #253140;border-radius:10px}
-table{width:100%;border-collapse:collapse;min-width:650px;font-size:12px}
-th,td{padding:10px;text-align:left;border-bottom:1px solid #202b38;white-space:nowrap}
-th{position:sticky;top:0;background:#17212d;color:#b8c6d7;z-index:1}
-tr:last-child td{border-bottom:0}
-.tag{display:inline-block;padding:3px 7px;border-radius:6px;background:#202c3b;color:#b9c8d9;font-size:10px;font-weight:800}
-.subhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.smallbtn{padding:7px 9px;font-size:11px}
-.checkrow{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #202b38}
-.checkrow input{width:auto}.checkrow span{flex:1;overflow-wrap:anywhere}
-.checkrow small{color:var(--muted)}
-.empty{padding:22px;text-align:center;color:var(--muted)}
-footer{color:#6f7f91;font-size:11px;margin-top:15px}
-@media(max-width:800px){
- .span8,.span4,.span6{grid-column:span 12}
- .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
- .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
- .hero{display:block}.pill{display:inline-block;margin-top:10px}
-}
-@media(max-width:420px){
- main{padding:14px 9px 30px}.panel{padding:12px}
- .controls{grid-template-columns:1fr}.metric strong{font-size:18px}
-}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#152130 0,#0a0d12 55%);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:1200px;margin:auto;padding:22px 14px 50px}.hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}.eyebrow{color:var(--green);font-weight:800;letter-spacing:.12em;font-size:11px}h1{font-size:clamp(24px,4vw,38px);line-height:1.12;margin:7px 0}p{color:var(--muted);margin:7px 0}.pill{border:1px solid #2c745d;color:var(--green);padding:6px 10px;border-radius:99px;font-size:11px;font-weight:800;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px}.panel{background:linear-gradient(180deg,#131c27,#10161e);border:1px solid var(--line);border-radius:15px;padding:16px;min-width:0}.span12{grid-column:span 12}.span8{grid-column:span 8}.span4{grid-column:span 4}.span6{grid-column:span 6}h2{font-size:16px;margin:0 0 12px}label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}input,select,button{font:inherit}input,select{width:100%;background:#0b1118;color:var(--text);border:1px solid #2a3747;border-radius:9px;padding:10px}button{cursor:pointer;border:0;border-radius:10px;padding:11px 14px;font-weight:800;background:var(--green);color:#06140f}button.secondary{background:#202c3b;color:var(--text);border:1px solid #334254}button:disabled{opacity:.45;cursor:not-allowed}.controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.field{min-width:0}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric{background:#0b1118;border:1px solid #233040;border-radius:11px;padding:12px}.metric small{display:block;color:var(--muted);font-size:11px}.metric strong{font-size:21px;display:block;margin-top:3px;overflow-wrap:anywhere}.good{color:var(--green)}.bad{color:var(--red)}.muted{color:var(--muted)}.notice{border:1px solid #665629;background:#211c10;color:#f8dda0;padding:11px 12px;border-radius:10px;margin-top:12px;font-size:12px}.status{margin-top:10px;color:var(--muted);font-size:12px;min-height:18px}.tablewrap{overflow:auto;max-height:480px;border:1px solid #253140;border-radius:10px}table{width:100%;border-collapse:collapse;min-width:650px;font-size:12px}th,td{padding:10px;text-align:left;border-bottom:1px solid #202b38;white-space:nowrap}th{position:sticky;top:0;background:#17212d;color:#b8c6d7;z-index:1}tr:last-child td{border-bottom:0}.tag{display:inline-block;padding:3px 7px;border-radius:6px;background:#202c3b;color:#b9c8d9;font-size:10px;font-weight:800}.subhead{display:flex;align-items:center;justify-content:space-between;gap:10px}.smallbtn{padding:7px 9px;font-size:11px}.checkrow{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #202b38}.checkrow input{width:auto}.checkrow span{flex:1;overflow-wrap:anywhere}.checkrow small{color:var(--muted)}.empty{padding:22px;text-align:center;color:var(--muted)}footer{color:#6f7f91;font-size:11px;margin-top:15px}
+@media(max-width:800px){.span8,.span4,.span6{grid-column:span 12}.controls{grid-template-columns:repeat(2,minmax(0,1fr))}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{display:block}.pill{display:inline-block;margin-top:10px}}
+@media(max-width:420px){main{padding:14px 9px 30px}.panel{padding:12px}.controls{grid-template-columns:1fr}.metric strong{font-size:18px}}
 </style>
 </head>
 <body>
 <main>
-<header class="hero">
- <div>
-  <div class="eyebrow">ROBINHOOD CHAIN · PAPER TRADING LAB</div>
-  <h1>Backtest v3</h1>
-  <p>Historical strategy comparison, trade-by-trade results, multiple pools, and a separate out-of-sample test.</p>
- </div>
- <div class="pill">DEMO ONLY · NO WALLET</div>
-</header>
+  <header class="hero">
+    <div><div class="eyebrow">ROBINHOOD CHAIN · PAPER TRADING LAB</div><h1>Backtest v3</h1><p>Historical strategy comparison, trade-by-trade results, multiple pools, and a separate out-of-sample test.</p></div>
+    <div class="pill">DEMO ONLY · NO WALLET</div>
+  </header>
 
-<div class="grid">
-<section class="panel span12">
- <h2>1. Choose markets & settings</h2>
- <div class="controls">
-  <div class="field">
-   <label for="poolCount">Pools to test (from top-volume list)</label>
-   <select id="poolCount">
-    <option value="1">1 pool</option>
-    <option value="3" selected>Up to 3 pools</option>
-    <option value="5">Up to 5 pools</option>
-   </select>
-  </div>
-  <div class="field">
-   <label for="candles">Hourly candles per pool</label>
-   <select id="candles">
-    <option value="100">100</option>
-    <option value="200">200</option>
-    <option value="300">300</option>
-    <option value="500" selected>500 (API limit may apply)</option>
-   </select>
-  </div>
-  <div class="field">
-   <label for="cash">Starting demo cash (USD)</label>
-   <input id="cash" type="number" min="10" max="1000000" step="10" value="100">
-  </div>
-  <div class="field">
-   <label for="cost">Fee + slippage per side (%)</label>
-   <input id="cost" type="number" min="0" max="5" step="0.1" value="0.5">
-  </div>
- </div>
- <div class="actions">
-  <button id="loadBtn">Load available pools</button>
-  <button id="runBtn" class="secondary" disabled>Run Backtest v3</button>
-  <button id="clearBtn" class="secondary">Clear results</button>
- </div>
- <div id="status" class="status" role="status">Ready. Load pools to begin. API access and historical data availability can vary.</div>
- <div id="poolList" style="margin-top:12px"></div>
- <div class="notice">
-  Method: signals use completed candles before the simulated entry candle. The first 70% is the in-sample period; the last 30% is held out for out-of-sample evaluation. Each buy/sell side pays the selected cost. Historical simulations are not predictions.
- </div>
-</section>
+  <div class="grid">
+    <section class="panel span12">
+      <h2>1. Choose markets & settings</h2>
+      <div class="controls">
+        <div class="field"><label for="poolCount">Pools to test (from top-volume list)</label><select id="poolCount"><option value="1">1 pool</option><option value="3" selected>Up to 3 pools</option><option value="5">Up to 5 pools</option></select></div>
+        <div class="field"><label for="candles">Hourly candles per pool</label><select id="candles"><option value="100">100</option><option value="200">200</option><option value="300">300</option><option value="500" selected>500 (API limit may apply)</option></select></div>
+        <div class="field"><label for="cash">Starting demo cash (USD)</label><input id="cash" type="number" min="10" max="1000000" step="10" value="100"></div>
+        <div class="field"><label for="cost">Fee + slippage per side (%)</label><input id="cost" type="number" min="0" max="5" step="0.1" value="0.5"></div>
+      </div>
+      <div class="actions"><button id="loadBtn">Load available pools</button><button id="runBtn" class="secondary" disabled>Run Backtest v3</button><button id="clearBtn" class="secondary">Clear results</button></div>
+      <div id="status" class="status" role="status">Ready. Load pools to begin. API access and historical data availability can vary.</div>
+      <div id="poolList" style="margin-top:12px"></div>
+      <div class="notice">Method: signals use only completed candles before the simulated entry candle. The first 70% is the in-sample period; the last 30% is held out for out-of-sample evaluation. Every buy/sell side pays the selected cost. Results are historical simulations, not predictions.</div>
+    </section>
 
-<section class="panel span12">
- <div class="subhead"><h2>2. Strategy results</h2><span class="tag" id="runBadge">NOT RUN</span></div>
- <div id="summary" class="metrics">
-  <div class="metric"><small>Markets tested</small><strong>—</strong></div>
-  <div class="metric"><small>Trade rows</small><strong>—</strong></div>
-  <div class="metric"><small>Best OOS return</small><strong>—</strong></div>
-  <div class="metric"><small>Data quality</small><strong>—</strong></div>
- </div>
- <div class="tablewrap" style="margin-top:12px">
-  <table>
-   <thead><tr><th>Pool</th><th>Strategy</th><th>Period</th><th>Return</th><th>Win rate</th><th>Closed trades</th><th>Max drawdown</th><th>Final equity</th></tr></thead>
-   <tbody id="resultsBody"><tr><td colspan="8" class="empty">Load pools and run a backtest to see results.</td></tr></tbody>
-  </table>
- </div>
-</section>
+    <section class="panel span12">
+      <div class="subhead"><h2>2. Strategy results</h2><span class="tag" id="runBadge">NOT RUN</span></div>
+      <div id="summary" class="metrics">
+        <div class="metric"><small>Markets tested</small><strong>—</strong></div><div class="metric"><small>Trade rows</small><strong>—</strong></div><div class="metric"><small>Best OOS return</small><strong>—</strong></div><div class="metric"><small>Data quality</small><strong>—</strong></div>
+      </div>
+      <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Pool</th><th>Strategy</th><th>Period</th><th>Return</th><th>Win rate</th><th>Closed trades</th><th>Max drawdown</th><th>Final equity</th></tr></thead><tbody id="resultsBody"><tr><td colspan="8" class="empty">Load pools and run a backtest to see results.</td></tr></tbody></table></div>
+    </section>
 
-<section class="panel span12">
- <div class="subhead"><h2>3. Trade history</h2><button class="secondary smallbtn" id="exportBtn" disabled>Export CSV</button></div>
- <p>Each row is a completed position, including entry/exit times, costs, and net P/L.</p>
- <div class="controls" style="grid-template-columns:repeat(3,minmax(0,1fr));margin:12px 0">
-  <div class="field">
-   <label for="historyPool">Market</label>
-   <select id="historyPool"><option value="all">All markets</option></select>
+    <section class="panel span12">
+      <div class="subhead"><h2>3. Trade history</h2><button class="secondary smallbtn" id="exportBtn" disabled>Export CSV</button></div>
+      <p>Each row is a completed position, including entry/exit times, costs, and net P/L.</p>
+      <div class="controls" style="grid-template-columns:repeat(3,minmax(0,1fr));margin:12px 0">
+        <div class="field"><label for="historyPool">Market</label><select id="historyPool"><option value="all">All markets</option></select></div>
+        <div class="field"><label for="historyStrategy">Strategy</label><select id="historyStrategy"><option value="all">All strategies</option><option>Momentum</option><option>MA Trend (6/24)</option><option>Buy & Hold</option></select></div>
+        <div class="field"><label for="historyPeriod">Period</label><select id="historyPeriod"><option value="all">All periods</option><option>In-sample</option><option>Out-of-sample</option></select></div>
+      </div>
+      <div class="tablewrap"><table><thead><tr><th>Pool</th><th>Strategy</th><th>Period</th><th>Entry time</th><th>Entry price</th><th>Exit time</th><th>Exit price</th><th>Entry cost</th><th>Entry fee</th><th>Exit fee</th><th>Net P/L</th><th>Return</th><th>Exit reason</th></tr></thead><tbody id="historyBody"><tr><td colspan="13" class="empty">No trades yet.</td></tr></tbody></table></div>
+    </section>
   </div>
-  <div class="field">
-   <label for="historyStrategy">Strategy</label>
-   <select id="historyStrategy">
-    <option value="all">All strategies</option>
-    <option>Momentum</option>
-    <option>MA Trend (6/24)</option>
-    <option>Buy &amp; Hold</option>
-   </select>
-  </div>
-  <div class="field">
-   <label for="historyPeriod">Period</label>
-   <select id="historyPeriod">
-    <option value="all">All periods</option>
-    <option>In-sample</option>
-    <option>Out-of-sample</option>
-   </select>
-  </div>
- </div>
- <div class="tablewrap">
-  <table>
-   <thead><tr><th>Pool</th><th>Strategy</th><th>Period</th><th>Entry time</th><th>Entry price</th><th>Exit time</th><th>Exit price</th><th>Net P/L</th><th>Return</th><th>Exit reason</th></tr></thead>
-   <tbody id="historyBody"><tr><td colspan="10" class="empty">No trades yet.</td></tr></tbody>
-  </table>
- </div>
-</section>
-</div>
-<footer>Data source: GeckoTerminal public API. Public endpoints can be rate-limited or change. This page does not connect a wallet, request a private key, or submit transactions.</footer>
+  <footer>Data source: GeckoTerminal public API. Public endpoints can be rate-limited or change. This page does not connect a wallet, request a private key, or submit transactions.</footer>
 </main>
-
 <script>
 (() => {
 'use strict';
-
 const API='https://api.geckoterminal.com/api/v2';
 const $=id=>document.getElementById(id);
 let pools=[], candleCache=new Map(), allTrades=[], allResults=[], isBusy=false;
-
-const fmt=(n,d=2)=>Number.isFinite(n)
- ? n.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d})
- : '—';
+const fmt=(n,d=2)=>Number.isFinite(n)?n.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
 const money=n=>Number.isFinite(n)?'$'+fmt(n):'—';
+const priceFmt=n=>{
+ if(!Number.isFinite(n)) return '—';
+ if(n===0) return '$0';
+ const a=Math.abs(n);
+ const decimals=a>=100?2:a>=1?4:a>=0.01?6:10;
+ return '$'+n.toLocaleString(undefined,{minimumFractionDigits:Math.min(decimals,2),maximumFractionDigits:decimals});
+};
 const pct=n=>Number.isFinite(n)?(n>=0?'+':'')+fmt(n)+'%':'—';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function setStatus(s){$('status').textContent=s}
-function timeLabel(sec){return sec?new Date(sec*1000).toLocaleString():'—'}
-
+function timeLabel(sec){if(!sec)return '—';return new Date(sec*1000).toLocaleString()}
 async function getJson(url){
  const r=await fetch(url,{headers:{accept:'application/json'}});
- if(!r.ok)throw new Error('API returned HTTP '+r.status);
+ if(!r.ok) throw new Error('API returned HTTP '+r.status);
  return r.json();
 }
-
 async function loadPools(){
- if(isBusy)return;
- isBusy=true;
- $('loadBtn').disabled=true;
- $('runBtn').disabled=true;
+ if(isBusy)return; isBusy=true;$('loadBtn').disabled=true;$('runBtn').disabled=true;
  try{
   setStatus('Loading highest-volume pools from GeckoTerminal…');
   const j=await getJson(`${API}/networks/robinhood/pools?sort=h24_volume_usd_desc&page=1`);
   const raw=j?.data||[];
   pools=raw.slice(0,10).map((x,i)=>{
-   const a=x.attributes||{};
-   return {
-    id:x.id,
-    address:a.address||'',
-    name:a.name||a.pool_name||a.address||('Pool '+(i+1)),
-    volume:Number(a.volume_usd?.h24||0),
-    liquidity:Number(a.reserve_in_usd||0),
-    change:Number(a.price_change_percentage?.h24||0),
-    network:a.network||'robinhood'
-   };
+   const a=x.attributes||{}, rel=x.relationships||{};
+   const addr=a.address||'';
+   const name=a.name||a.pool_name||addr||('Pool '+(i+1));
+   const volume=Number(a.volume_usd?.h24||0), liquidity=Number(a.reserve_in_usd||0);
+   return {id:x.id,address:addr,name,volume,liquidity,change:Number(a.price_change_percentage?.h24||0),network:a.network||'robinhood'};
   }).filter(p=>p.address);
-
   if(!pools.length)throw new Error('The API returned no pools for this network.');
-
-  $('poolList').innerHTML=
-   '<div class="muted" style="font-size:12px;margin-bottom:6px">Select up to the number chosen above. Sorted by reported 24h volume.</div>'+
-   pools.map((p,i)=>`
-    <label class="checkrow">
-     <input type="checkbox" class="poolcheck" value="${esc(p.address)}" ${i<Number($('poolCount').value)?'checked':''}>
-     <span><b>${esc(p.name)}</b><br><small>${esc(p.address)}</small></span>
-     <small>Vol ${money(p.volume)} · Liq ${money(p.liquidity)}</small>
-    </label>`).join('');
-
+  $('poolList').innerHTML='<div class="muted" style="font-size:12px;margin-bottom:6px">Select up to the number chosen above. Sorted by reported 24h volume.</div>'+pools.map((p,i)=>`<label class="checkrow"><input type="checkbox" class="poolcheck" value="${esc(p.address)}" ${i<Number($('poolCount').value)?'checked':''}><span><b>${esc(p.name)}</b><br><small>${esc(p.address)}</small></span><small>Vol ${money(p.volume)} · Liq ${money(p.liquidity)}</small></label>`).join('');
   document.querySelectorAll('.poolcheck').forEach(c=>c.addEventListener('change',syncPoolChecks));
-  syncPoolChecks();
-  setStatus(`Loaded ${pools.length} pool(s). Select markets, then run Backtest v3.`);
- }catch(e){
-  setStatus('Could not load pools: '+e.message+'. Check internet/API availability and try again.');
- }finally{
-  isBusy=false;
-  $('loadBtn').disabled=false;
- }
+  syncPoolChecks();setStatus(`Loaded ${pools.length} pool(s). Select markets, then run Backtest v3.`);
+ }catch(e){setStatus('Could not load pools: '+e.message+'. Check internet/API availability and try again.')}
+ finally{isBusy=false;$('loadBtn').disabled=false}
 }
-
 function syncPoolChecks(){
- const max=Number($('poolCount').value);
- const checks=[...document.querySelectorAll('.poolcheck')];
+ const max=Number($('poolCount').value), checks=[...document.querySelectorAll('.poolcheck')];
  let selected=checks.filter(c=>c.checked);
- if(selected.length>max){
-  selected.slice(max).forEach(c=>c.checked=false);
-  selected=checks.filter(c=>c.checked);
- }
+ if(selected.length>max){selected.slice(max).forEach(c=>c.checked=false);selected=checks.filter(c=>c.checked)}
  checks.forEach(c=>c.disabled=!c.checked&&selected.length>=max);
  $('runBtn').disabled=!selected.length||isBusy;
 }
-
 async function loadCandles(pool,limit){
  const key=pool.address+':'+limit;
  if(candleCache.has(key))return candleCache.get(key);
  const url=`${API}/networks/robinhood/pools/${encodeURIComponent(pool.address)}/ohlcv/hour?aggregate=1&limit=${limit}&currency=usd`;
  const j=await getJson(url);
  const rows=j?.data?.attributes?.ohlcv_list||[];
- const candles=rows.map(r=>({
-  time:Number(r[0]),open:Number(r[1]),high:Number(r[2]),
-  low:Number(r[3]),close:Number(r[4]),volume:Number(r[5]||0)
- })).filter(c=>c.time&&c.open>0&&c.close>0&&Number.isFinite(c.close))
-   .sort((a,b)=>a.time-b.time);
- candleCache.set(key,candles);
- return candles;
+ const candles=rows.map(r=>({time:Number(r[0]),open:Number(r[1]),high:Number(r[2]),low:Number(r[3]),close:Number(r[4]),volume:Number(r[5]||0)}))
+  .filter(c=>c.time&&c.open>0&&c.close>0&&Number.isFinite(c.close)).sort((a,b)=>a.time-b.time);
+ candleCache.set(key,candles);return candles;
 }
-
 function sma(candles,end,period){
- if(end+1<period)return null;
- let sum=0;
- for(let k=end-period+1;k<=end;k++)sum+=candles[k].close;
- return sum/period;
+ if(end+1<period)return null;let s=0;for(let k=end-period+1;k<=end;k++)s+=candles[k].close;return s/period;
 }
-
 function desired(strategy,c,i){
- // Signal uses candle i-1 and earlier; execution occurs at candle i open.
- const prev=i-1;
- if(prev<0)return false;
-
+ // All signals are computed from candle i-1 or earlier and execute at candle i open.
+ const prev=i-1;if(prev<0)return false;
  if(strategy==='Momentum'){
   if(prev<24)return false;
-  const change=(c[prev].close/c[prev-24].close-1)*100;
-  return change>=5;
+  const ch=(c[prev].close/c[prev-24].close-1)*100;
+  return ch>=5;
  }
-
  if(strategy==='MA Trend (6/24)'){
   if(prev<24)return false;
-  const fast=sma(c,prev,6);
-  const slow=sma(c,prev,24);
-  return fast!==null&&slow!==null&&fast>slow;
+  const fastNow=sma(c,prev,6), slowNow=sma(c,prev,24);
+  // Stay invested while the fast average is above the slow average;
+  // this naturally enters/exits on crossovers without a one-candle signal bug.
+  return fastNow!==null&&slowNow!==null&&fastNow>slowNow;
  }
  return false;
 }
-
 function simulate(candles,strategy,start,end,startingCash,costPct,poolName,periodName){
- // For OOS, earlier candles provide indicator warm-up only.
- // Positions begin at the first bar in the selected period.
+ // OOS can use earlier candles as indicator warm-up, but positions only begin inside [start,end).
  const c=candles.slice(0,end);
  const periodBars=candles.slice(start,end);
  const trades=[];
-
- if(periodBars.length<35){
-  return {
-   trades,returnPct:null,winRate:null,closed:0,maxDD:null,
-   finalEquity:startingCash,dataCount:periodBars.length,
-   warning:'Insufficient history'
-  };
- }
-
+ if(periodBars.length<35)return {trades,returnPct:null,winRate:null,closed:0,maxDD:null,finalEquity:startingCash,dataCount:periodBars.length,warning:'Insufficient history'};
  const fee=costPct/100;
- let cash=startingCash,qty=0,entryPrice=0,entryTime=0,entryCost=0;
- let peak=startingCash,maxDD=0;
-
- const equityAt=price=>qty>0?qty*price*(1-fee):cash;
-
+ let cash=startingCash,qty=0,entryPrice=0,entryTime=0,entryCost=0,peak=startingCash,maxDD=0;
+ const equityAt=(price)=>qty>0?qty*price*(1-fee):cash;
  function buy(price,time){
   if(!(price>0)||cash<=0)return;
-  entryCost=cash;
-  qty=cash/(price*(1+fee));
-  entryPrice=price;
-  entryTime=time;
-  cash=0;
+  entryCost=cash;qty=cash/(price*(1+fee));entryPrice=price;entryTime=time;cash=0;
  }
-
  function sell(price,time,reason){
   if(qty<=0)return;
-  const proceeds=qty*price*(1-fee);
-  const pnl=proceeds-entryCost;
-  const ret=entryCost>0?pnl/entryCost*100:0;
-  trades.push({
-   pool:poolName,strategy,period:periodName,
-   entryTime,entryPrice,exitTime:time,exitPrice:price,
-   pnl,returnPct:ret,reason
-  });
-  cash=proceeds;
-  qty=0;
-  entryCost=0;
-  entryPrice=0;
-  entryTime=0;
+  const proceeds=qty*price*(1-fee), pnl=proceeds-entryCost, ret=entryCost>0?pnl/entryCost*100:0;
+  trades.push({pool:poolName,strategy,period:periodName,entryTime,entryPrice,exitTime:time,exitPrice:price,pnl,returnPct:ret,reason});
+  cash=proceeds;qty=0;entryCost=0;entryPrice=0;entryTime=0;
  }
-
  // Buy & Hold is a single independent position for this period.
  if(strategy==='Buy & Hold')buy(periodBars[0].open,periodBars[0].time);
-
  for(let j=0;j<periodBars.length;j++){
-  const i=start+j;
-  const bar=candles[i];
-
+  const i=start+j, bar=candles[i];
   if(strategy!=='Buy & Hold'&&i>0){
+   // OOS strategy may use earlier candles for warm-up, but signal must be based on completed candles.
    const want=desired(strategy,c,i);
-   if(want&&qty===0){
-    buy(bar.open,bar.time);
-   }else if(!want&&qty>0){
-    sell(
-     bar.open,
-     bar.time,
-     strategy==='Momentum'?'Momentum condition off':'MA trend turned off'
-    );
-   }
+   if(want&&qty===0)buy(bar.open,bar.time);
+   else if(!want&&qty>0)sell(bar.open,bar.time,strategy==='Momentum'?'Momentum condition off':'MA trend turned off');
   }
-
-  // Conservative liquidation value includes one hypothetical exit cost.
-  // The cost is not repeatedly deducted from the cash balance.
   const equity=equityAt(bar.close);
   peak=Math.max(peak,equity);
   if(peak>0)maxDD=Math.max(maxDD,(peak-equity)/peak);
  }
-
- if(qty>0){
-  sell(
-   periodBars[periodBars.length-1].close,
-   periodBars[periodBars.length-1].time,
-   'End of period'
-  );
- }
-
+ if(qty>0)sell(periodBars[periodBars.length-1].close,periodBars[periodBars.length-1].time,'End of period');
  const finalEquity=cash;
  const totalReturn=(finalEquity/startingCash-1)*100;
  const wins=trades.filter(t=>t.pnl>0).length;
-
- return {
-  trades,returnPct:totalReturn,
-  winRate:trades.length?wins/trades.length*100:null,
-  closed:trades.length,maxDD:maxDD*100,
-  finalEquity,dataCount:periodBars.length,
-  warning:periodBars.length<80
-   ?'Short history; interpret cautiously'
-   :(trades.length===0?'No trades triggered in this period':'')
- };
+ return {trades,returnPct:totalReturn,winRate:trades.length?wins/trades.length*100:null,closed:trades.length,maxDD:maxDD*100,finalEquity,dataCount:periodBars.length,warning:periodBars.length<80?'Short history; interpret cautiously':(trades.length===0?'No trades triggered in this period':'')};
 }
-
 function rowHtml(r){
  const cls=r.returnPct===null?'':r.returnPct>=0?'good':'bad';
- return `<tr>
-  <td>${esc(r.pool)}</td>
-  <td>${esc(r.strategy)}</td>
-  <td>${esc(r.period)}</td>
-  <td class="${cls}">${r.returnPct===null?'N/A':pct(r.returnPct)}</td>
-  <td>${r.winRate===null?'N/A':fmt(r.winRate)+'%'}</td>
-  <td>${r.closed}</td>
-  <td>${r.maxDD===null?'N/A':fmt(r.maxDD)+'%'}</td>
-  <td>${money(r.finalEquity)}</td>
- </tr>`;
+ return `<tr><td>${esc(r.pool)}</td><td>${esc(r.strategy)}</td><td>${esc(r.period)}</td><td class="${cls}">${r.returnPct===null?'N/A':pct(r.returnPct)}</td><td>${r.winRate===null?'N/A':fmt(r.winRate)+'%'}</td><td>${r.closed}</td><td>${r.maxDD===null?'N/A':fmt(r.maxDD)+'%'}</td><td>${money(r.finalEquity)}</td></tr>`;
 }
-
 function renderHistory(){
- const pool=$('historyPool').value;
- const strat=$('historyStrategy').value;
- const period=$('historyPeriod').value;
- const rows=allTrades.filter(t=>
-  (pool==='all'||t.pool===pool)&&
-  (strat==='all'||t.strategy===strat)&&
-  (period==='all'||t.period===period)
- );
-
- $('historyBody').innerHTML=rows.length
-  ?rows.map(t=>`<tr>
-   <td>${esc(t.pool)}</td>
-   <td>${esc(t.strategy)}</td>
-   <td>${esc(t.period)}</td>
-   <td>${esc(timeLabel(t.entryTime))}</td>
-   <td>${money(t.entryPrice)}</td>
-   <td>${esc(timeLabel(t.exitTime))}</td>
-   <td>${money(t.exitPrice)}</td>
-   <td class="${t.pnl>=0?'good':'bad'}">${t.pnl>=0?'+':''}${money(t.pnl)}</td>
-   <td class="${t.returnPct>=0?'good':'bad'}">${pct(t.returnPct)}</td>
-   <td>${esc(t.reason)}</td>
-  </tr>`).join('')
-  :'<tr><td colspan="10" class="empty">No completed trades match these filters.</td></tr>';
+ const pool=$('historyPool').value,strat=$('historyStrategy').value,period=$('historyPeriod').value;
+ const rows=allTrades.filter(t=>(pool==='all'||t.pool===pool)&&(strat==='all'||t.strategy===strat)&&(period==='all'||t.period===period));
+ $('historyBody').innerHTML=rows.length?rows.map(t=>`<tr><td>${esc(t.pool)}</td><td>${esc(t.strategy)}</td><td>${esc(t.period)}</td><td>${esc(timeLabel(t.entryTime))}</td><td>${priceFmt(t.entryPrice)}</td><td>${esc(timeLabel(t.exitTime))}</td><td>${priceFmt(t.exitPrice)}</td><td class="${t.pnl>=0?'good':'bad'}">${t.pnl>=0?'+':''}${money(t.pnl)}</td><td class="${t.returnPct>=0?'good':'bad'}">${pct(t.returnPct)}</td><td>${esc(t.reason)}</td></tr>`).join(''):'<tr><td colspan="13" class="empty">No completed trades match these filters.</td></tr>';
 }
-
 async function runBacktest(){
  if(isBusy)return;
-
- const selected=[...document.querySelectorAll('.poolcheck:checked')]
-  .map(c=>pools.find(p=>p.address===c.value)).filter(Boolean);
- if(!selected.length){
-  setStatus('Select at least one pool first.');
-  return;
- }
-
- const startCash=Number($('cash').value);
- const cost=Number($('cost').value);
- const limit=Number($('candles').value);
-
- if(!(startCash>0)||!Number.isFinite(startCash)||cost<0||cost>5){
-  setStatus('Enter valid cash and cost values.');
-  return;
- }
-
- isBusy=true;
- $('loadBtn').disabled=true;
- $('runBtn').disabled=true;
- $('runBadge').textContent='RUNNING';
- allTrades=[];
- allResults=[];
- candleCache.clear();
+ const selected=[...document.querySelectorAll('.poolcheck:checked')].map(c=>pools.find(p=>p.address===c.value)).filter(Boolean);
+ if(!selected.length){setStatus('Select at least one pool first.');return}
+ const startCash=Number($('cash').value),cost=Number($('cost').value),limit=Number($('candles').value);
+ if(!(startCash>0)||!Number.isFinite(startCash)||cost<0||cost>5){setStatus('Enter valid cash and cost values.');return}
+ isBusy=true;$('loadBtn').disabled=true;$('runBtn').disabled=true;$('runBadge').textContent='RUNNING';allTrades=[];allResults=[];candleCache.clear();
  $('resultsBody').innerHTML='<tr><td colspan="8" class="empty">Fetching historical candles…</td></tr>';
-
  try{
   for(let pIndex=0;pIndex<selected.length;pIndex++){
-   const pool=selected[pIndex];
-   setStatus(`Loading hourly history ${pIndex+1}/${selected.length}: ${pool.name}`);
+   const pool=selected[pIndex];setStatus(`Loading hourly history ${pIndex+1}/${selected.length}: ${pool.name}`);
    let candles=[];
-
-   try{
-    candles=await loadCandles(pool,limit);
-   }catch(e){
-    allResults.push({
-     pool:pool.name,strategy:'—',period:'—',returnPct:null,
-     winRate:null,closed:0,maxDD:null,finalEquity:startCash,
-     dataCount:0,warning:e.message
-    });
-    continue;
-   }
-
-   if(candles.length<35){
-    allResults.push({
-     pool:pool.name,strategy:'—',period:'—',returnPct:null,
-     winRate:null,closed:0,maxDD:null,finalEquity:startCash,
-     dataCount:candles.length,warning:'Insufficient history'
-    });
-    continue;
-   }
-
+   try{candles=await loadCandles(pool,limit)}catch(e){allResults.push({pool:pool.name,strategy:'—',period:'—',returnPct:null,winRate:null,closed:0,maxDD:null,finalEquity:startCash,dataCount:0,warning:e.message});continue}
+   if(candles.length<35){allResults.push({pool:pool.name,strategy:'—',period:'—',returnPct:null,winRate:null,closed:0,maxDD:null,finalEquity:startCash,dataCount:candles.length,warning:'Insufficient history'});continue}
    const split=Math.floor(candles.length*.7);
    const strategies=['Momentum','MA Trend (6/24)','Buy & Hold'];
-
-   for(const strategy of strategies){
-    const ins=simulate(
-     candles,strategy,0,split,startCash,cost,pool.name,'In-sample'
-    );
-    const oos=simulate(
-     candles,strategy,split,candles.length,startCash,cost,pool.name,'Out-of-sample'
-    );
-    allResults.push(ins,oos);
-    allTrades.push(...ins.trades,...oos.trades);
+   for(const s of strategies){
+    // Each period starts with fresh independent demo cash; OOS signals may use only candles inside the held-out window.
+    const ins=simulate(candles,s,0,split,startCash,cost,pool.name,'In-sample');
+    const oos=simulate(candles,s,split,candles.length,startCash,cost,pool.name,'Out-of-sample');
+    allResults.push(ins,oos);allTrades.push(...ins.trades,...oos.trades);
    }
   }
-
-  $('resultsBody').innerHTML=allResults.length
-   ?allResults.map(rowHtml).join('')
-   :'<tr><td colspan="8" class="empty">No usable results.</td></tr>';
-
-  const oos=allResults.filter(r=>
-   r.period==='Out-of-sample'&&Number.isFinite(r.returnPct)
-  );
+  $('resultsBody').innerHTML=allResults.length?allResults.map(rowHtml).join(''):'<tr><td colspan="8" class="empty">No usable results.</td></tr>';
+  const oos=allResults.filter(r=>r.period==='Out-of-sample'&&Number.isFinite(r.returnPct));
   const best=oos.length?Math.max(...oos.map(r=>r.returnPct)):null;
-  const markets=new Set(
-   allResults.filter(r=>r.dataCount>0).map(r=>r.pool)
-  ).size;
-  const tradeCount=allTrades.length;
+  const markets=new Set(allResults.filter(r=>r.dataCount>0).map(r=>r.pool)).size;
+  const rows=allTrades.length;
+  $('summary').innerHTML=`<div class="metric"><small>Markets with usable data</small><strong>${markets}/${selected.length}</strong></div><div class="metric"><small>Closed positions logged</small><strong>${rows}</strong></div><div class="metric"><small>Best OOS return</small><strong class="${best!==null&&best>=0?'good':'bad'}">${best===null?'N/A':pct(best)}</strong></div><div class="metric"><small>History received</small><strong>${markets?'Available':'Limited'}</strong></div>`;
+  $('historyPool').innerHTML='<option value="all">All markets</option>'+[...new Set(allTrades.map(t=>t.pool))].map(p=>`<option>${esc(p)}</option>`).join('');
+  $('exportBtn').disabled=!allTrades.length;renderHistory();$('runBadge').textContent='COMPLETE';
   const warnings=allResults.filter(r=>r.warning).length;
-
-  $('summary').innerHTML=`
-   <div class="metric"><small>Markets with usable data</small><strong>${markets}/${selected.length}</strong></div>
-   <div class="metric"><small>Closed positions logged</small><strong>${tradeCount}</strong></div>
-   <div class="metric"><small>Best OOS return</small><strong class="${best!==null&&best>=0?'good':'bad'}">${best===null?'N/A':pct(best)}</strong></div>
-   <div class="metric"><small>History received</small><strong>${markets?'Available':'Limited'}</strong></div>`;
-
-  $('historyPool').innerHTML=
-   '<option value="all">All markets</option>'+
-   [...new Set(allTrades.map(t=>t.pool))]
-    .map(p=>`<option>${esc(p)}</option>`).join('');
-
-  $('exportBtn').disabled=!allTrades.length;
-  renderHistory();
-  $('runBadge').textContent='COMPLETE';
-
-  setStatus(
-   `Finished. ${markets} market(s) had usable candles; ${tradeCount} closed positions logged.`+
-   (warnings?' Some markets or periods had limited or insufficient data.':'')
-  );
- }catch(e){
-  setStatus('Backtest failed: '+e.message+'. Try fewer pools or fewer candles; the public API may rate-limit requests.');
-  $('runBadge').textContent='ERROR';
- }finally{
-  isBusy=false;
-  $('loadBtn').disabled=false;
-  $('runBtn').disabled=!document.querySelector('.poolcheck:checked');
- }
+  setStatus(`Finished. ${markets} market(s) had usable candles; ${rows} closed positions logged.${warnings?' Some markets/periods had limited or insufficient data.':''}`);
+ }catch(e){setStatus('Backtest failed: '+e.message+'. Try fewer pools or fewer candles; the public API may rate-limit requests.');$('runBadge').textContent='ERROR'}
+ finally{isBusy=false;$('loadBtn').disabled=false;$('runBtn').disabled=!document.querySelector('.poolcheck:checked')}
 }
-
 function exportCsv(){
- const headers=[
-  'Pool','Strategy','Period','Entry time','Entry price',
-  'Exit time','Exit price','Net P/L USD','Return %','Exit reason'
- ];
- const rows=allTrades.map(t=>[
-  t.pool,t.strategy,t.period,timeLabel(t.entryTime),t.entryPrice,
-  timeLabel(t.exitTime),t.exitPrice,t.pnl,t.returnPct,t.reason
- ]);
+ const headers=['Pool','Strategy','Period','Entry time','Entry price','Exit time','Exit price','Entry cost USD','Entry fee USD','Exit fee USD','Net P/L USD','Return %','Exit reason'];
+ const rows=allTrades.map(t=>[t.pool,t.strategy,t.period,timeLabel(t.entryTime),t.entryPrice,timeLabel(t.exitTime),t.exitPrice,t.entryCost,t.entryFee,t.exitFee,t.pnl,t.returnPct,t.reason]);
  const quote=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
  const csv=[headers,...rows].map(r=>r.map(quote).join(',')).join('\r\n');
- const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
- const url=URL.createObjectURL(blob);
- const a=document.createElement('a');
- a.href=url;
- a.download='robinhood-backtest-v3-trades.csv';
- a.click();
- URL.revokeObjectURL(url);
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='robinhood-backtest-v3-trades.csv';a.click();URL.revokeObjectURL(url);
 }
-
-$('loadBtn').addEventListener('click',loadPools);
-$('runBtn').addEventListener('click',runBacktest);
-$('exportBtn').addEventListener('click',exportCsv);
-
-$('clearBtn').addEventListener('click',()=>{
- allTrades=[];
- allResults=[];
- $('resultsBody').innerHTML='<tr><td colspan="8" class="empty">Results cleared.</td></tr>';
- $('historyBody').innerHTML='<tr><td colspan="10" class="empty">No trades yet.</td></tr>';
- $('summary').innerHTML=`
-  <div class="metric"><small>Markets tested</small><strong>—</strong></div>
-  <div class="metric"><small>Trade rows</small><strong>—</strong></div>
-  <div class="metric"><small>Best OOS return</small><strong>—</strong></div>
-  <div class="metric"><small>Data quality</small><strong>—</strong></div>`;
- $('runBadge').textContent='NOT RUN';
- $('exportBtn').disabled=true;
- setStatus('Results cleared. Run the backtest again to create new results.');
-});
-
-$('poolCount').addEventListener('change',()=>{
- if(pools.length){
-  const checked=[...document.querySelectorAll('.poolcheck:checked')];
-  const max=Number($('poolCount').value);
-  checked.slice(max).forEach(c=>c.checked=false);
-  syncPoolChecks();
- }
-});
-
-['historyPool','historyStrategy','historyPeriod'].forEach(id=>
- $(id).addEventListener('change',renderHistory)
-);
+$('loadBtn').addEventListener('click',loadPools);$('runBtn').addEventListener('click',runBacktest);$('exportBtn').addEventListener('click',exportCsv);
+$('clearBtn').addEventListener('click',()=>{allTrades=[];allResults=[];$('resultsBody').innerHTML='<tr><td colspan="8" class="empty">Results cleared.</td></tr>';$('historyBody').innerHTML='<tr><td colspan="13" class="empty">No trades yet.</td></tr>';$('summary').innerHTML='<div class="metric"><small>Markets tested</small><strong>—</strong></div><div class="metric"><small>Trade rows</small><strong>—</strong></div><div class="metric"><small>Best OOS return</small><strong>—</strong></div><div class="metric"><small>Data quality</small><strong>—</strong></div>';$('runBadge').textContent='NOT RUN';$('exportBtn').disabled=true;setStatus('Results cleared. Cached candle data will reload when you run again.');});
+$('poolCount').addEventListener('change',()=>{if(pools.length){const checked=[...document.querySelectorAll('.poolcheck:checked')];const max=Number($('poolCount').value);checked.slice(max).forEach(c=>c.checked=false);syncPoolChecks()}});
+['historyPool','historyStrategy','historyPeriod'].forEach(id=>$(id).addEventListener('change',renderHistory));
 })();
 </script>
 </body>
