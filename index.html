@@ -1,209 +1,343 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Robinhood Chain — Paper Backtest v4</title>
-<style>
-:root{--bg:#0a0d12;--panel:#111821;--line:#253140;--text:#e8eef6;--muted:#9aa8b8;--green:#36d399;--red:#ff6b7a;--blue:#70a7ff;--yellow:#ffd166}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#152130 0,#0a0d12 55%);color:var(--text);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-main{max-width:1250px;margin:auto;padding:22px 14px 50px}.hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}.eyebrow{color:var(--green);font-weight:800;letter-spacing:.12em;font-size:11px}
-h1{font-size:clamp(24px,4vw,38px);line-height:1.12;margin:7px 0}h2{font-size:16px;margin:0 0 12px}p{color:var(--muted);margin:7px 0}
-label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}input,select,button{font:inherit}input,select{width:100%;background:#0b1118;color:var(--text);border:1px solid #2a3747;border-radius:9px;padding:10px}
-button{cursor:pointer;border:0;border-radius:10px;padding:11px 14px;font-weight:800;background:var(--green);color:#06140f}button.secondary{background:#202c3b;color:var(--text);border:1px solid #334254}button:disabled{opacity:.45;cursor:not-allowed}
-.pill{border:1px solid #2c745d;color:var(--green);padding:6px 10px;border-radius:99px;font-size:11px;font-weight:800;white-space:nowrap}
-.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px}.panel{background:linear-gradient(180deg,#131c27,#10161e);border:1px solid var(--line);border-radius:15px;padding:16px;min-width:0}.span12{grid-column:span 12}
-.controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.field{min-width:0}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric{background:#0b1118;border:1px solid #233040;border-radius:11px;padding:12px}.metric small{display:block;color:var(--muted);font-size:11px}.metric strong{font-size:21px;display:block;margin-top:3px;overflow-wrap:anywhere}
-.good{color:var(--green)}.bad{color:var(--red)}.muted{color:var(--muted)}.notice{border:1px solid #665629;background:#211c10;color:#f8dda0;padding:11px 12px;border-radius:10px;margin-top:12px;font-size:12px}
-.status{margin-top:10px;color:var(--muted);font-size:12px;min-height:18px;overflow-wrap:anywhere}.tablewrap{overflow:auto;max-height:500px;border:1px solid #253140;border-radius:10px}
-table{width:100%;border-collapse:collapse;min-width:700px;font-size:12px}th,td{padding:9px;text-align:left;border-bottom:1px solid #202b38;white-space:nowrap}th{position:sticky;top:0;background:#17212d;color:#b8c6d7;z-index:1}tr:last-child td{border-bottom:0}
-.tag{display:inline-block;padding:3px 7px;border-radius:6px;background:#202c3b;color:#b9c8d9;font-size:10px;font-weight:800}.subhead{display:flex;align-items:center;justify-content:space-between;gap:10px}.smallbtn{padding:7px 9px;font-size:11px}
-.checkrow{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #202b38}.checkrow input{width:auto}.checkrow span{flex:1;overflow-wrap:anywhere}.checkrow small{color:var(--muted)}.empty{padding:22px;text-align:center;color:var(--muted)}footer{color:#6f7f91;font-size:11px;margin-top:15px}
-@media(max-width:800px){.controls{grid-template-columns:repeat(2,minmax(0,1fr))}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{display:block}.pill{display:inline-block;margin-top:10px}}
-@media(max-width:420px){main{padding:14px 9px 30px}.panel{padding:12px}.controls{grid-template-columns:1fr}.metric strong{font-size:18px}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080b12">
+  <title>RHOOD BOT — Trading Dashboard</title>
+  <style>
+    :root {
+      --bg:#080b12; --panel:#101622; --border:#263247;
+      --text:#eef4ff; --muted:#8d9bb2; --blue:#66a6ff;
+      --green:#48dfaa; --red:#ff6b79; --yellow:#ffd166;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; background:
+      radial-gradient(ellipse at 50% 0%,#152544 0,transparent 50%),var(--bg);
+      color:var(--text); font-family:Inter,system-ui,Arial,sans-serif;
+    }
+    button,input { font:inherit; }
+    button { cursor:pointer; }
+    .wrap { max-width:1100px; padding:20px; margin:auto; }
+    header {
+      display:flex; justify-content:space-between; align-items:center;
+      gap:12px; flex-wrap:wrap; padding:12px 0 22px;
+    }
+    .brand { font-size:22px; font-weight:900; letter-spacing:1px; }
+    .brand span { color:var(--blue); }
+    .status { color:var(--muted); font-size:12px; }
+    .pill {
+      border:1px solid var(--border); padding:8px 12px;
+      border-radius:30px; font-size:12px; color:var(--yellow);
+    }
+    .hero { padding:22px 0 28px; }
+    .eyebrow { color:var(--blue); font-size:11px; letter-spacing:2px; font-weight:800; }
+    h1 { font-size:clamp(28px,6vw,48px); line-height:1.08; margin:12px 0; }
+    h1 span { color:var(--blue); }
+    p { color:var(--muted); line-height:1.6; }
+    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+    .panel {
+      background:linear-gradient(145deg,#131b2a,#0d121d);
+      border:1px solid var(--border); border-radius:16px; padding:18px;
+      min-width:0;
+    }
+    .panel h2 { font-size:15px; margin:0 0 16px; }
+    .metric { font-size:25px; font-weight:800; overflow-wrap:anywhere; }
+    .sub { color:var(--muted); font-size:12px; margin-top:7px; }
+    .wide { grid-column:span 2; }
+    .full { grid-column:1/-1; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .row > * { flex:1; min-width:0; }
+    label { display:block; font-size:12px; color:var(--muted); margin:14px 0 7px; }
+    input {
+      width:100%; background:#080d16; border:1px solid var(--border);
+      color:var(--text); border-radius:10px; padding:12px; outline:none;
+    }
+    input:focus { border-color:var(--blue); }
+    .btn {
+      border:1px solid var(--border); border-radius:10px; padding:12px 14px;
+      background:#17243a; color:var(--text); font-weight:750;
+    }
+    .btn.primary { background:var(--blue); color:#07101d; border-color:var(--blue); }
+    .btn.stop { background:#39151e; color:#ff8b98; border-color:#77313e; }
+    .btn:disabled { opacity:.55; cursor:not-allowed; }
+    .notice {
+      border:1px solid #69572a; background:#211d12; color:#ffdf92;
+      padding:13px; border-radius:12px; font-size:12px; line-height:1.6;
+    }
+    .log {
+      background:#080d16; border:1px solid var(--border); padding:12px;
+      border-radius:10px; min-height:80px; font-size:12px;
+      line-height:1.8; white-space:pre-wrap; overflow-wrap:anywhere;
+    }
+    .good { color:var(--green); } .bad { color:var(--red); }
+    .muted { color:var(--muted); }
+    footer { padding:24px 0; text-align:center; color:var(--muted); font-size:11px; }
+    @media(max-width:720px) {
+      .wrap { padding:14px; }
+      .grid { grid-template-columns:1fr; }
+      .wide,.full { grid-column:auto; }
+      .metric { font-size:23px; }
+      header { align-items:flex-start; }
+    }
+  </style>
 </head>
 <body>
-<main>
-<header class="hero"><div><div class="eyebrow">ROBINHOOD CHAIN · PAPER TRADING LAB</div><h1>Backtest v4</h1><p>Audited costs, no-trade labels, multiple pools, trade ledger and out-of-sample comparison.</p></div><div class="pill">DEMO ONLY · NO WALLET</div></header>
-<div class="grid">
-<section class="panel span12">
-<h2>1. Markets & settings</h2>
-<div class="controls">
-<div class="field"><label for="poolCount">Maximum pools</label><select id="poolCount"><option value="1">1 pool</option><option value="3" selected>Up to 3 pools</option><option value="5">Up to 5 pools</option></select></div>
-<div class="field"><label for="candles">Hourly candles per pool</label><select id="candles"><option value="100">100</option><option value="200">200</option><option value="300">300</option><option value="500" selected>500 (API may limit)</option></select></div>
-<div class="field"><label for="cash">Starting demo cash (USD)</label><input id="cash" type="number" min="10" max="1000000" step="10" value="100"></div>
-<div class="field"><label for="cost">Estimated cost per side (%)</label><input id="cost" type="number" min="0" max="5" step="0.1" value="0.5"></div>
-</div>
-<div class="actions"><button id="loadBtn">Load available pools</button><button id="runBtn" class="secondary" disabled>Run Backtest v4</button><button id="clearBtn" class="secondary">Clear results</button></div>
-<div id="status" class="status" role="status">Ready. Load pools to begin.</div><div id="poolList" style="margin-top:12px"></div>
-<div class="notice">Signals are based on completed candles and execute at the next candle open. The first 70% is in-sample; the final 30% is out-of-sample. Each period starts with independent demo cash. Costs are an estimate, not a guarantee of real execution costs. No real trades are sent.</div>
-</section>
-<section class="panel span12">
-<div class="subhead"><h2>2. Strategy results</h2><span class="tag" id="runBadge">NOT RUN</span></div>
-<div id="summary" class="metrics"><div class="metric"><small>Usable markets</small><strong>—</strong></div><div class="metric"><small>Closed trades</small><strong>—</strong></div><div class="metric"><small>Best OOS return</small><strong>—</strong></div><div class="metric"><small>Data warnings</small><strong>—</strong></div></div>
-<div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Pool</th><th>Strategy</th><th>Period</th><th>Return</th><th>Win rate</th><th>Trades</th><th>Max drawdown</th><th>Total fees</th><th>Final equity</th><th>Status</th></tr></thead><tbody id="resultsBody"><tr><td colspan="10" class="empty">Load pools and run a backtest.</td></tr></tbody></table></div>
-</section>
-<section class="panel span12">
-<div class="subhead"><h2>3. Trade history</h2><button class="secondary smallbtn" id="exportBtn" disabled>Export CSV</button></div>
-<p>Buy total cost is positive cash spent, including entry fee. Net P/L = sell proceeds − buy total cost.</p>
-<div class="controls" style="grid-template-columns:repeat(3,minmax(0,1fr));margin:12px 0">
-<div class="field"><label for="historyPool">Market</label><select id="historyPool"><option value="all">All markets</option></select></div>
-<div class="field"><label for="historyStrategy">Strategy</label><select id="historyStrategy"><option value="all">All strategies</option><option>Momentum</option><option>MA Trend (6/24)</option><option>Buy &amp; Hold</option></select></div>
-<div class="field"><label for="historyPeriod">Period</label><select id="historyPeriod"><option value="all">All periods</option><option>In-sample</option><option>Out-of-sample</option></select></div>
-</div>
-<div class="tablewrap"><table><thead><tr><th>Pool</th><th>Strategy</th><th>Period</th><th>Entry time</th><th>Entry price</th><th>Exit time</th><th>Exit price</th><th>Buy total cost</th><th>Entry fee</th><th>Sell gross</th><th>Exit fee</th><th>Sell proceeds</th><th>Net P/L</th><th>Return</th><th>Exit reason</th></tr></thead><tbody id="historyBody"><tr><td colspan="15" class="empty">No trades yet.</td></tr></tbody></table></div>
-</section>
-</div>
-<footer>GeckoTerminal public API. API data can be incomplete, rate-limited, or revised. This tool is for research and paper backtesting only; it does not connect a wallet or submit transactions.</footer>
-</main>
-<script>
-'use strict';
-(()=>{
-const API='https://api.geckoterminal.com/api/v2', $=id=>document.getElementById(id);
-let pools=[],allTrades=[],allResults=[],busy=false;
-const fmt=(n,d=2)=>Number.isFinite(n)?n.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
-const money=n=>Number.isFinite(n)?'$'+fmt(n,2):'N/A';
-function priceFmt(n){if(!Number.isFinite(n))return 'N/A';if(n===0)return '$0';const a=Math.abs(n),d=a>=100?2:a>=1?4:a>=.01?6:10;return '$'+n.toLocaleString(undefined,{minimumFractionDigits:Math.min(2,d),maximumFractionDigits:d})}
-const pct=n=>Number.isFinite(n)?(n>=0?'+':'')+fmt(n)+'%':'N/A';
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const status=s=>$('status').textContent=s;
-const timeLabel=t=>t?new Date(t*1000).toLocaleString():'—';
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">RHOOD <span>BOT</span></div>
+      <div class="status">ON-CHAIN TRADING CONTROL CENTER</div>
+    </div>
+    <div class="pill" id="botStatus">● SAFE MODE</div>
+  </header>
 
-async function getJson(url){
- const r=await fetch(url,{headers:{accept:'application/json'}});
- if(!r.ok)throw new Error('API HTTP '+r.status);
- return r.json();
-}
-async function loadPools(){
- if(busy)return;busy=true;$('loadBtn').disabled=true;$('runBtn').disabled=true;
- try{
-  status('Loading highest-volume pools…');
-  const j=await getJson(`${API}/networks/robinhood/pools?sort=h24_volume_usd_desc&page=1`);
-  pools=(j.data||[]).slice(0,10).map((x,i)=>{const a=x.attributes||{};return{id:x.id,address:a.address||'',name:a.name||a.pool_name||a.address||('Pool '+(i+1)),volume:Number(a.volume_usd?.h24||0),liquidity:Number(a.reserve_in_usd||0)}}).filter(p=>p.address);
-  if(!pools.length)throw new Error('No pools returned for this network.');
-  $('poolList').innerHTML='<div class="muted">Select the markets to test; selection is limited by Maximum pools.</div>'+pools.map((p,i)=>`<label class="checkrow"><input type="checkbox" class="poolcheck" value="${esc(p.address)}" ${i<Number($('poolCount').value)?'checked':''}><span><b>${esc(p.name)}</b><br><small>${esc(p.address)}</small></span><small>Vol ${money(p.volume)} · Liq ${money(p.liquidity)}</small></label>`).join('');
-  document.querySelectorAll('.poolcheck').forEach(c=>c.addEventListener('change',syncChecks));syncChecks();status(`Loaded ${pools.length} pools.`);
- }catch(e){status('Could not load pools: '+e.message)}
- finally{busy=false;$('loadBtn').disabled=false;syncChecks()}
-}
-function syncChecks(){
- const checks=[...document.querySelectorAll('.poolcheck')],max=Number($('poolCount').value);let chosen=checks.filter(c=>c.checked);
- if(chosen.length>max){chosen.slice(max).forEach(c=>c.checked=false);chosen=checks.filter(c=>c.checked)}
- checks.forEach(c=>c.disabled=!c.checked&&chosen.length>=max);
- $('runBtn').disabled=chosen.length===0||busy;
-}
-async function loadCandles(pool,limit){
- const url=`${API}/networks/robinhood/pools/${encodeURIComponent(pool.address)}/ohlcv/hour?aggregate=1&limit=${limit}&currency=usd`;
- const j=await getJson(url),rows=j?.data?.attributes?.ohlcv_list||[];
- return rows.map(r=>({time:+r[0],open:+r[1],high:+r[2],low:+r[3],close:+r[4],volume:+(r[5]||0)}))
- .filter(c=>c.time>0&&c.open>0&&c.close>0&&Number.isFinite(c.open)&&Number.isFinite(c.close))
- .sort((a,b)=>a.time-b.time);
-}
-function sma(c,i,n){if(i+1<n)return null;let sum=0;for(let k=i-n+1;k<=i;k++)sum+=c[k].close;return sum/n}
-function desired(strategy,c,i){
- const p=i-1;if(p<0)return false;
- if(strategy==='Momentum'){if(p<24)return false;return (c[p].close/c[p-24].close-1)*100>=5}
- if(strategy==='MA Trend (6/24)'){const f=sma(c,p,6),s=sma(c,p,24);return f!==null&&s!==null&&f>s}
- return false;
-}
-function simulate(candles,strategy,start,end,startCash,costPct,pool,period){
- const bars=candles.slice(start,end),trades=[];
- if(bars.length<35)return{pool,strategy,period,trades,returnPct:null,winRate:null,closed:0,maxDD:null,totalFees:null,finalEquity:null,dataCount:bars.length,status:'INSUFFICIENT HISTORY'};
- const fee=costPct/100;let cash=startCash,qty=0,entryPrice=0,entryTime=0,entryCost=0,entryFee=0,entryGross=0,totalFees=0,peak=startCash,maxDD=0;
- function equity(price){return qty>0?qty*price*(1-fee):cash}
- function buy(price,time){if(!(price>0)||cash<=0)return;entryCost=cash;entryPrice=price;entryTime=time;entryGross=entryCost/(1+fee);entryFee=entryCost-entryGross;qty=entryGross/price;cash=0;totalFees+=entryFee}
- function sell(price,time,reason){
-  if(!(price>0)||qty<=0)return;
-  const sellGross=qty*price,exitFee=sellGross*fee,sellProceeds=sellGross-exitFee,pnl=sellProceeds-entryCost,ret=entryCost?pnl/entryCost*100:0;
-  totalFees+=exitFee;
-  trades.push({pool,strategy,period,entryTime,entryPrice,exitTime:time,exitPrice:price,entryCost,entryFee,entryGross,sellGross,exitFee,sellProceeds,pnl,returnPct:ret,reason});
-  cash=sellProceeds;qty=0;entryPrice=entryTime=entryCost=entryFee=entryGross=0;
- }
- if(strategy==='Buy & Hold')buy(bars[0].open,bars[0].time);
- for(let j=0;j<bars.length;j++){
-  const i=start+j,bar=candles[i];
-  if(strategy!=='Buy & Hold'&&i>0){
-   const want=desired(strategy,candles,i);
-   if(want&&qty===0)buy(bar.open,bar.time);
-   else if(!want&&qty>0)sell(bar.open,bar.time,strategy==='Momentum'?'Momentum signal off':'MA trend turned off');
+  <section class="hero">
+    <div class="eyebrow">ROBINHOOD CHAIN · MAINNET</div>
+    <h1>Trade smarter.<br><span>Control every risk.</span></h1>
+    <p>Connection diagnostics and risk settings. Live trading is disabled in this version.</p>
+    <div class="row">
+      <button class="btn primary" id="checkNetwork">Check Mainnet</button>
+      <button class="btn" id="connectWallet">Connect Wallet</button>
+    </div>
+  </section>
+
+  <div class="notice" style="margin-bottom:16px">
+    <strong>Safety notice:</strong> This page never asks for a seed phrase or private key.
+    The dashboard cannot buy or sell tokens. Never enable a live bot without a secure
+    backend, verified token routing, spending limits and independent testing.
+  </div>
+
+  <section class="grid">
+    <div class="panel">
+      <h2>Network</h2>
+      <div class="metric" id="networkValue">Not checked</div>
+      <div class="sub" id="networkSub">Expected chain ID: 4663</div>
+    </div>
+    <div class="panel">
+      <h2>Wallet</h2>
+      <div class="metric" id="walletValue">Disconnected</div>
+      <div class="sub" id="walletSub">No wallet permissions granted</div>
+    </div>
+    <div class="panel">
+      <h2>Trading engine</h2>
+      <div class="metric" style="color:var(--yellow)">DISABLED</div>
+      <div class="sub">No automatic orders are sent</div>
+    </div>
+
+    <div class="panel wide">
+      <h2>Token inspector</h2>
+      <label for="tokenAddress">Token contract address</label>
+      <input id="tokenAddress" placeholder="0x..." spellcheck="false" autocomplete="off">
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="inspectToken">Check Address</button>
+        <a class="btn" style="text-align:center;text-decoration:none" href="https://robinhoodchain.blockscout.com/" target="_blank" rel="noopener noreferrer">Open Explorer ↗</a>
+      </div>
+      <p id="tokenResult" class="sub">Address format can be checked locally. This does not establish that a token is safe.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Bot controls</h2>
+      <div class="row">
+        <button class="btn stop" id="stopBot">STOP</button>
+        <button class="btn" id="resetBot">Reset</button>
+      </div>
+      <p class="sub" id="stopMessage">Safe mode is active. Trading is disabled.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Risk limits — local preview</h2>
+      <label for="budget">Maximum budget per trade (USD)</label>
+      <input id="budget" type="number" min="0.01" max="5" step="0.01" value="1">
+      <label for="dailyLoss">Daily loss limit (USD)</label>
+      <input id="dailyLoss" type="number" min="0.01" max="5" step="0.01" value="1">
+      <label for="slippage">Maximum slippage (%)</label>
+      <input id="slippage" type="number" min="0.1" max="1" step="0.1" value="0.5">
+      <button class="btn primary" id="saveLimits" style="margin-top:12px;width:100%">Save Preview Settings</button>
+      <p class="sub" id="limitsMessage">These settings are not enforced by a trading engine.</p>
+    </div>
+
+    <div class="panel wide">
+      <h2>Connection diagnostics</h2>
+      <div class="log" id="logs" aria-live="polite">Ready. No transactions have been sent.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Live trading</h2>
+      <div class="metric" style="color:var(--red)">LOCKED</div>
+      <p class="sub">Backend and security checks required before real-money trading.</p>
+    </div>
+  </section>
+
+  <footer>RHOOD BOT · Diagnostic build · No profit guarantee · Use at your own risk</footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const RPC = "https://rpc.mainnet.chain.robinhood.com";
+  const EXPECTED_CHAIN_ID = "0x1237"; // 4663
+  let stopped = true;
+  let provider = null;
+
+  const $ = id => document.getElementById(id);
+  const logBox = $("logs");
+
+  function log(message, type = "") {
+    const time = new Date().toLocaleTimeString();
+    const line = document.createElement("div");
+    line.textContent = `[${time}] ${message}`;
+    if (type) line.className = type;
+    logBox.prepend(line);
   }
-  const eq=equity(bar.close);peak=Math.max(peak,eq);if(peak>0)maxDD=Math.max(maxDD,(peak-eq)/peak);
- }
- if(qty>0){const last=bars[bars.length-1];sell(last.close,last.time,'End of period')}
- const ret=(cash/startCash-1)*100,wins=trades.filter(t=>t.pnl>0).length;
- return{pool,strategy,period,trades,returnPct:ret,winRate:trades.length?wins/trades.length*100:null,closed:trades.length,maxDD:maxDD*100,totalFees,finalEquity:cash,dataCount:bars.length,status:trades.length?'OK':'NO TRADE'};
-}
-function resultRow(r){
- const cls=r.returnPct===null?'':r.returnPct>=0?'good':'bad';
- return `<tr><td>${esc(r.pool||'Unknown pool')}</td><td>${esc(r.strategy||'Not tested')}</td><td>${esc(r.period||'No data')}</td><td class="${cls}">${r.status==='NO TRADE'?'NO TRADE':pct(r.returnPct)}</td><td>${r.winRate===null?'N/A':fmt(r.winRate)+'%'}</td><td>${r.closed||0}</td><td>${r.maxDD===null?'N/A':fmt(r.maxDD)+'%'}</td><td>${r.totalFees===null?'N/A':money(r.totalFees)}</td><td>${r.finalEquity===null?'N/A':money(r.finalEquity)}</td><td>${esc(r.status||'—')}</td></tr>`;
-}
-function renderHistory(){
- const pool=$('historyPool').value,strategy=$('historyStrategy').value,period=$('historyPeriod').value;
- const rows=allTrades.filter(t=>(pool==='all'||t.pool===pool)&&(strategy==='all'||t.strategy===strategy)&&(period==='all'||t.period===period));
- $('historyBody').innerHTML=rows.length?rows.map(t=>`<tr>
- <td>${esc(t.pool)}</td><td>${esc(t.strategy)}</td><td>${esc(t.period)}</td>
- <td>${esc(timeLabel(t.entryTime))}</td><td>${priceFmt(t.entryPrice)}</td>
- <td>${esc(timeLabel(t.exitTime))}</td><td>${priceFmt(t.exitPrice)}</td>
- <td>${money(t.entryCost)}</td><td>${money(t.entryFee)}</td><td>${money(t.sellGross)}</td>
- <td>${money(t.exitFee)}</td><td>${money(t.sellProceeds)}</td>
- <td class="${t.pnl>=0?'good':'bad'}">${t.pnl>=0?'+':''}${money(t.pnl)}</td>
- <td class="${t.returnPct>=0?'good':'bad'}">${pct(t.returnPct)}</td><td>${esc(t.reason)}</td>
- </tr>`).join(''):'<tr><td colspan="15" class="empty">No completed trades match these filters.</td></tr>';
-}
-async function runBacktest(){
- if(busy)return;
- const chosen=[...document.querySelectorAll('.poolcheck:checked')].map(c=>pools.find(p=>p.address===c.value)).filter(Boolean);
- if(!chosen.length){status('Select at least one pool.');return}
- const startCash=Number($('cash').value),cost=Number($('cost').value),limit=Number($('candles').value);
- if(!(startCash>0)||!Number.isFinite(startCash)||cost<0||cost>5){status('Enter valid starting cash and cost (0–5%).');return}
- busy=true;$('loadBtn').disabled=true;$('runBtn').disabled=true;$('runBadge').textContent='RUNNING';allTrades=[];allResults=[];
- $('resultsBody').innerHTML='<tr><td colspan="10" class="empty">Loading historical candles…</td></tr>';
- try{
-  for(let n=0;n<chosen.length;n++){
-   const pool=chosen[n];status(`Loading history ${n+1}/${chosen.length}: ${pool.name}`);
-   let candles;
-   try{candles=await loadCandles(pool,limit)}catch(e){allResults.push({pool:pool.name,strategy:'—',period:'—',returnPct:null,winRate:null,closed:0,maxDD:null,totalFees:null,finalEquity:null,dataCount:0,status:'API ERROR: '+e.message});continue}
-   if(candles.length<35){allResults.push({pool:pool.name,strategy:'—',period:'—',returnPct:null,winRate:null,closed:0,maxDD:null,totalFees:null,finalEquity:null,dataCount:candles.length,status:'INSUFFICIENT HISTORY'});continue}
-   const split=Math.floor(candles.length*.7),strategies=['Momentum','MA Trend (6/24)','Buy & Hold'];
-   for(const strategy of strategies){
-    const ins=simulate(candles,strategy,0,split,startCash,cost,pool.name,'In-sample');
-    const oos=simulate(candles,strategy,split,candles.length,startCash,cost,pool.name,'Out-of-sample');
-    allResults.push(ins,oos);allTrades.push(...ins.trades,...oos.trades);
-   }
-   // Avoid hammering the public API: fetch sequentially, one market at a time.
+
+  function shorten(value) {
+    return value.slice(0, 6) + "..." + value.slice(-4);
   }
-  $('resultsBody').innerHTML=allResults.map(resultRow).join('')||'<tr><td colspan="10" class="empty">No results.</td></tr>';
-  const oos=allResults.filter(r=>r.period==='Out-of-sample'&&Number.isFinite(r.returnPct));
-  const best=oos.length?Math.max(...oos.map(r=>r.returnPct)):null;
-  const markets=new Set(allResults.filter(r=>r.dataCount>0).map(r=>r.pool)).size;
-  const warnings=allResults.filter(r=>r.status!=='OK'&&r.status!=='NO TRADE').length;
-  $('summary').innerHTML=`<div class="metric"><small>Usable markets</small><strong>${markets}/${chosen.length}</strong></div><div class="metric"><small>Closed trades</small><strong>${allTrades.length}</strong></div><div class="metric"><small>Best OOS return</small><strong class="${best!==null&&best>=0?'good':'bad'}">${best===null?'N/A':pct(best)}</strong></div><div class="metric"><small>Data warnings</small><strong>${warnings}</strong></div>`;
-  $('historyPool').innerHTML='<option value="all">All markets</option>'+[...new Set(allTrades.map(t=>t.pool))].map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
-  $('exportBtn').disabled=!allTrades.length;renderHistory();$('runBadge').textContent='COMPLETE';
-  status(`Finished. ${markets}/${chosen.length} markets had usable data; ${allTrades.length} closed positions. “NO TRADE” means the strategy did not enter during that period, not that it earned 0% from a trade.`);
- }catch(e){status('Backtest failed: '+e.message);$('runBadge').textContent='ERROR'}
- finally{busy=false;$('loadBtn').disabled=false;syncChecks()}
-}
-function exportCsv(){
- const headers=['Pool','Strategy','Period','Entry time','Entry price','Exit time','Exit price','Buy total cost USD','Entry fee USD','Buy gross USD','Sell gross USD','Exit fee USD','Sell proceeds USD','Net P/L USD','Return %','Exit reason'];
- const rows=allTrades.map(t=>[t.pool,t.strategy,t.period,timeLabel(t.entryTime),t.entryPrice,timeLabel(t.exitTime),t.exitPrice,t.entryCost,t.entryFee,t.entryGross,t.sellGross,t.exitFee,t.sellProceeds,t.pnl,t.returnPct,t.reason]);
- const quote=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
- const csv=[headers,...rows].map(r=>r.map(quote).join(',')).join('\r\n');
- const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');
- a.href=url;a.download='robinhood-backtest-v4-trades.csv';a.click();URL.revokeObjectURL(url);
-}
-function clearResults(){
- allTrades=[];allResults=[];
- $('resultsBody').innerHTML='<tr><td colspan="10" class="empty">Results cleared.</td></tr>';
- $('historyBody').innerHTML='<tr><td colspan="15" class="empty">No trades yet.</td></tr>';
- $('summary').innerHTML='<div class="metric"><small>Usable markets</small><strong>—</strong></div><div class="metric"><small>Closed trades</small><strong>—</strong></div><div class="metric"><small>Best OOS return</small><strong>—</strong></div><div class="metric"><small>Data warnings</small><strong>—</strong></div>';
- $('runBadge').textContent='NOT RUN';$('exportBtn').disabled=true;status('Results cleared.');
-}
-$('loadBtn').addEventListener('click',loadPools);$('runBtn').addEventListener('click',runBacktest);$('clearBtn').addEventListener('click',clearResults);$('exportBtn').addEventListener('click',exportCsv);
-$('poolCount').addEventListener('change',()=>{if(!pools.length)return;const checks=[...document.querySelectorAll('.poolcheck:checked')];checks.slice(Number($('poolCount').value)).forEach(c=>c.checked=false);syncChecks()});
-['historyPool','historyStrategy','historyPeriod'].forEach(id=>$(id).addEventListener('change',renderHistory));
+
+  async function rpcCall(method, params = []) {
+    const response = await fetch(RPC, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method,
+        params
+      })
+    });
+    if (!response.ok) throw new Error("RPC HTTP status " + response.status);
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message || "RPC error");
+    return data.result;
+  }
+
+  $("checkNetwork").addEventListener("click", async () => {
+    $("checkNetwork").disabled = true;
+    $("networkValue").textContent = "Checking...";
+    try {
+      const chainId = await rpcCall("eth_chainId");
+      if (chainId.toLowerCase() === EXPECTED_CHAIN_ID) {
+        $("networkValue").textContent = "Connected";
+        $("networkValue").className = "metric good";
+        $("networkSub").textContent = "Robinhood Chain · ID 4663";
+        log("Mainnet RPC returned the expected chain ID 4663.", "good");
+      } else {
+        $("networkValue").textContent = "Wrong network";
+        $("networkValue").className = "metric bad";
+        $("networkSub").textContent = "Received chain ID: " + chainId;
+        log("Unexpected chain ID: " + chainId, "bad");
+      }
+    } catch (error) {
+      $("networkValue").textContent = "Unavailable";
+      $("networkValue").className = "metric bad";
+      $("networkSub").textContent = "RPC or browser connection failed";
+      log("Network check failed: " + error.message +
+        ". Browser CORS or RPC rate limits may be responsible.", "bad");
+    } finally {
+      $("checkNetwork").disabled = false;
+    }
+  });
+
+  $("connectWallet").addEventListener("click", async () => {
+    if (!window.ethereum) {
+      log("No compatible browser wallet detected. Open this page in a compatible wallet browser.", "bad");
+      $("walletSub").textContent = "Wallet provider not detected";
+      return;
+    }
+    try {
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts"
+      });
+      if (!accounts.length) throw new Error("No account returned");
+      provider = window.ethereum;
+      const chain = await provider.request({ method: "eth_chainId" });
+      $("walletValue").textContent = shorten(accounts[0]);
+      $("walletSub").textContent = chain.toLowerCase() === EXPECTED_CHAIN_ID
+        ? "Wallet connected · Mainnet"
+        : "Connected, but not on Robinhood Chain";
+      log("Wallet connected for address display only. No signing or transactions.", "good");
+      provider.on?.("chainChanged", () => {
+        log("Wallet network changed. Re-check the network before continuing.");
+      });
+      provider.on?.("accountsChanged", accountsNow => {
+        $("walletValue").textContent = accountsNow.length
+          ? shorten(accountsNow[0]) : "Disconnected";
+      });
+    } catch (error) {
+      log("Wallet connection cancelled or failed: " + error.message, "bad");
+    }
+  });
+
+  $("inspectToken").addEventListener("click", async () => {
+    const address = $("tokenAddress").value.trim();
+    const result = $("tokenResult");
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      result.textContent = "Invalid address format. Enter a 0x address with 40 hexadecimal characters.";
+      result.className = "sub bad";
+      return;
+    }
+    result.textContent = "Checking whether contract code exists...";
+    result.className = "sub";
+    try {
+      const code = await rpcCall("eth_getCode", [address, "latest"]);
+      if (code === "0x" || code === "0x0") {
+        result.textContent = "No contract code found at this address on the queried chain.";
+        result.className = "sub bad";
+      } else {
+        result.textContent = "Contract code exists. This does NOT verify token safety, liquidity, sellability, ownership, or honeypot risk.";
+        result.className = "sub good";
+      }
+      log("Contract-code check completed. It is not a token safety audit.");
+    } catch (error) {
+      result.textContent = "Could not check contract code: " + error.message;
+      result.className = "sub bad";
+      log("Token check failed: " + error.message, "bad");
+    }
+  });
+
+  $("saveLimits").addEventListener("click", () => {
+    const budget = Number($("budget").value);
+    const dailyLoss = Number($("dailyLoss").value);
+    const slippage = Number($("slippage").value);
+
+    if (!Number.isFinite(budget) || budget < 0.01 || budget > 5 ||
+        !Number.isFinite(dailyLoss) || dailyLoss < 0.01 || dailyLoss > 5 ||
+        !Number.isFinite(slippage) || slippage < 0.1 || slippage > 1) {
+      $("limitsMessage").textContent =
+        "Invalid limits. Trade budget/loss must be $0.01–$5; slippage must be 0.1–1%.";
+      $("limitsMessage").className = "sub bad";
+      return;
+    }
+    $("limitsMessage").textContent =
+      `Preview saved: $${budget.toFixed(2)} per trade; $${dailyLoss.toFixed(2)} daily loss; ${slippage}% slippage. Not enforced on-chain.`;
+    $("limitsMessage").className = "sub good";
+    log("Risk preview settings updated. No trade was placed.");
+  });
+
+  $("stopBot").addEventListener("click", () => {
+    stopped = true;
+    $("botStatus").textContent = "● STOPPED";
+    $("botStatus").style.color = "var(--red)";
+    $("stopMessage").textContent = "Stopped. Trading remains disabled.";
+    log("STOP activated. This disables no running server process because no trading engine exists.", "bad");
+  });
+
+  $("resetBot").addEventListener("click", () => {
+    stopped = true;
+    $("botStatus").textContent = "● SAFE MODE";
+    $("botStatus").style.color = "var(--yellow)";
+    $("stopMessage").textContent = "Safe mode is active. Trading is disabled.";
+    $("limitsMessage").textContent = "These settings are not enforced by a trading engine.";
+    log("Dashboard reset to safe mode. Trading remains disabled.");
+  });
+
+  // Deliberately no private-key input, signing, approvals, swaps, or auto-trading.
+  if (!stopped) stopped = true;
+  log("Safety lock active. This frontend cannot execute trades.");
 })();
 </script>
 </body>
