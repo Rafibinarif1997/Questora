@@ -3,23 +3,26 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RH Bot | Live Paper Trading</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RH BOT | Robinhood Paper Trading</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;padding:18px;background:#0b1020;color:#e8eef9;font-family:Arial,sans-serif}
-main{max-width:650px;margin:20px auto}
+main{max-width:680px;margin:20px auto}
 h1{color:#75edbb}
 .card{padding:18px;margin:14px 0;background:#151d30;border:1px solid #293650;border-radius:14px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .muted{color:#9cacc6;font-size:13px;line-height:1.6}
-.value{font-size:23px;font-weight:bold;margin-top:8px;overflow-wrap:anywhere}
-button,select,input{width:100%;padding:12px;margin:7px 0;border-radius:8px;font-size:14px}
-select,input{background:#0b1020;color:white;border:1px solid #35425c}
+.value{font-size:22px;font-weight:bold;margin-top:8px;overflow-wrap:anywhere}
+input,select,button{width:100%;padding:12px;margin:7px 0;border-radius:8px;font-size:14px}
+input,select{background:#0b1020;color:white;border:1px solid #35425c}
 button{background:#75edbb;color:#08140f;font-weight:bold;border:0;cursor:pointer}
-button.sell{background:#ff8585}
-button.secondary{background:#293650;color:white}
+button:disabled{opacity:.5;cursor:not-allowed}
+.sell{background:#ff8585}
+.secondary{background:#293650;color:white}
+.signal{font-size:26px;color:#75edbb}
 #status,#activity{line-height:1.7;overflow-wrap:anywhere}
+@media(max-width:420px){body{padding:10px}.card{padding:14px}.value{font-size:19px}}
 </style>
 </head>
 <body>
@@ -28,11 +31,10 @@ button.secondary{background:#293650;color:white}
 <p class="muted">ROBINHOOD CHAIN · LIVE DATA · PAPER TRADING ONLY</p>
 
 <div class="card">
-<div class="muted">Network</div>
-<div class="value">Robinhood Chain</div>
-<div class="muted">Market data: GeckoTerminal</div>
+<h3>Market Connection</h3>
+<div class="muted">Source: GeckoTerminal Public API</div>
 <button id="load">Load Live Markets</button>
-<div id="status">Press the button to load market data.</div>
+<div id="status" class="muted">Ready to connect.</div>
 </div>
 
 <div class="card">
@@ -40,25 +42,46 @@ button.secondary{background:#293650;color:white}
 <select id="markets" disabled>
 <option value="">Load markets first</option>
 </select>
-<button id="refresh" class="secondary" disabled>Refresh Selected Price</button>
-<div class="muted">Selected pair</div>
+<button id="refresh" class="secondary" disabled>Refresh Selected Market</button>
+<div class="muted">Trading pair</div>
 <div id="pair" class="value">—</div>
-<div class="muted">Live base token price (USD)</div>
+<div class="muted">Base token price (USD)</div>
 <div id="price" class="value">—</div>
-<div class="muted">Pool liquidity (USD)</div>
+<div class="grid">
+<div>
+<div class="muted">Liquidity (USD)</div>
 <div id="liquidity" class="value">—</div>
-<div class="muted">24h volume (USD)</div>
+</div>
+<div>
+<div class="muted">24h Volume (USD)</div>
 <div id="volume" class="value">—</div>
-<div id="updated" class="muted"></div>
+</div>
+<div>
+<div class="muted">24h Price Change</div>
+<div id="change" class="value">—</div>
+</div>
+<div>
+<div class="muted">Last Fetched</div>
+<div id="updated" class="muted">—</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h3>Trading Signal</h3>
+<div id="signal" class="signal">WAIT</div>
+<div id="signalReason" class="muted">Load a market first.</div>
+<button id="generate" disabled>Generate Signal</button>
+<p class="muted">Rule-based educational signal, not an AI prediction or a guarantee of profit.</p>
 </div>
 
 <div class="grid">
 <div class="card">
-<div class="muted">Demo Cash</div>
+<div class="muted">Virtual Cash</div>
 <div id="cash" class="value">$100.00</div>
 </div>
 <div class="card">
-<div class="muted">Demo Equity</div>
+<div class="muted">Portfolio Value</div>
 <div id="equity" class="value">$100.00</div>
 </div>
 <div class="card">
@@ -73,28 +96,34 @@ button.secondary{background:#293650;color:white}
 
 <div class="card">
 <h3>Paper Trading</h3>
-<div class="muted">Trade amount in USD</div>
+<label for="amount" class="muted">Trade amount in USD</label>
 <input id="amount" type="number" min="0.01" step="any" value="10">
-<button id="buy">Demo Buy</button>
-<button id="sell" class="sell">Demo Sell</button>
-<div class="muted">No blockchain transactions. No real money.</div>
+<button id="buy" disabled>Demo Buy</button>
+<button id="sell" class="sell" disabled>Demo Sell</button>
+<p class="muted">Only simulated trades. No wallet connection or real funds.</p>
 </div>
 
 <div class="card">
 <h3>Selected Token Position</h3>
-<div id="position">No position.</div>
+<div id="position" class="muted">No position.</div>
 <button id="reset" class="secondary">Reset Demo Account</button>
 </div>
 
 <div class="card">
 <h3>Activity Log</h3>
-<div id="activity" class="muted">Waiting for market data.</div>
+<div id="activity" class="muted">No activity yet.</div>
 </div>
 </main>
 
 <script>
+"use strict";
+
 const API = "https://api.geckoterminal.com/api/v2";
 const $ = id => document.getElementById(id);
+const money = n => "$" + Number(n).toLocaleString("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 6
+});
 
 let pools = [];
 let selected = null;
@@ -102,29 +131,10 @@ let cash = 100;
 let realized = 0;
 let positions = {};
 let logs = [];
-
-const money = n => "$" + n.toLocaleString("en-US", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 6
-});
-
-async function getJSON(url) {
-  const response = await fetch(url, {
-    headers: { "Accept": "application/json;version=20230302" }
-  });
-  if (!response.ok) throw Error("API HTTP " + response.status);
-  return response.json();
-}
-
-function log(message) {
-  logs.unshift(new Date().toLocaleTimeString() + " — " + message);
-  logs = logs.slice(0, 8);
-  $("activity").textContent = logs.join("\n");
-  $("activity").style.whiteSpace = "pre-line";
-}
+let lastFetch = 0;
 
 function attrs(pool) {
-  return pool.attributes || {};
+  return pool?.attributes || {};
 }
 
 function priceOf(pool) {
@@ -132,41 +142,92 @@ function priceOf(pool) {
   return Number.isFinite(p) && p > 0 ? p : 0;
 }
 
+function poolAddress(pool) {
+  return attrs(pool).address || "";
+}
+
+function positionFor(address) {
+  return positions[address] || { qty: 0, cost: 0 };
+}
+
 function currentPosition() {
-  return selected ? positions[attrs(selected).address] || {
-    qty: 0, cost: 0
-  } : { qty: 0, cost: 0 };
+  return selected ? positionFor(poolAddress(selected)) :
+    { qty: 0, cost: 0 };
+}
+
+function addLog(message) {
+  logs.unshift(new Date().toLocaleTimeString() + " — " + message);
+  logs = logs.slice(0, 10);
+  $("activity").textContent = logs.join("\n");
+  $("activity").style.whiteSpace = "pre-line";
+}
+
+function showStatus(message) {
+  $("status").textContent = message;
+}
+
+async function getJSON(url) {
+  const response = await fetch(url, {
+    headers: { "Accept": "application/json;version=20230302" }
+  });
+
+  if (!response.ok) {
+    throw new Error("API HTTP " + response.status);
+  }
+
+  return response.json();
+}
+
+function setTradingEnabled(enabled) {
+  $("refresh").disabled = !enabled;
+  $("generate").disabled = !enabled;
+  $("buy").disabled = !enabled;
+  $("sell").disabled = !enabled;
 }
 
 function render() {
-  const p = selected ? priceOf(selected) : 0;
+  const p = priceOf(selected);
+  const address = poolAddress(selected);
   const pos = currentPosition();
-  const value = pos.qty * p;
-  const unreal = value - pos.cost;
+  const marketValue = pos.qty * p;
+  const unrealized = marketValue - pos.cost;
 
   $("cash").textContent = money(cash);
-  $("equity").textContent = money(cash + value);
-  $("unrealized").textContent = money(unreal);
+  $("equity").textContent = money(cash + marketValue);
+  $("unrealized").textContent = money(unrealized);
   $("realized").textContent = money(realized);
+
   $("position").textContent = pos.qty > 0
-    ? pos.qty.toFixed(8) + " tokens | Cost: " + money(pos.cost)
-    : "No position in selected pool.";
+    ? pos.qty.toFixed(8) + " tokens | Cost basis: " +
+      money(pos.cost) + " | Current value: " + money(marketValue)
+    : "No position in selected market.";
 
-  $("price").textContent = p ? money(p) : "Price unavailable";
-
-  if (selected) {
-    const a = attrs(selected);
-    $("pair").textContent = a.name || a.address;
-    $("liquidity").textContent = money(Number(a.reserve_in_usd) || 0);
-    $("volume").textContent = money(Number(
-      a.volume_usd && a.volume_usd.h24
-    ) || 0);
+  if (!selected) {
+    $("pair").textContent = "—";
+    $("price").textContent = "—";
+    $("liquidity").textContent = "—";
+    $("volume").textContent = "—";
+    $("change").textContent = "—";
+    $("updated").textContent = "—";
+    setTradingEnabled(false);
+    return;
   }
+
+  const a = attrs(selected);
+  const vol = Number(a.volume_usd?.h24 || 0);
+  const ch = Number(a.price_change_percentage?.h24 || 0);
+
+  $("pair").textContent = a.name || address;
+  $("price").textContent = p ? money(p) : "Unavailable";
+  $("liquidity").textContent = money(Number(a.reserve_in_usd) || 0);
+  $("volume").textContent = money(vol);
+  $("change").textContent = ch.toFixed(2) + "%";
+  setTradingEnabled(p > 0);
 }
 
 async function loadMarkets() {
-  $("status").textContent = "Loading Robinhood Chain markets...";
   $("load").disabled = true;
+  showStatus("Loading markets...");
 
   try {
     const result = await getJSON(
@@ -176,135 +237,189 @@ async function loadMarkets() {
     pools = (result.data || []).filter(pool => priceOf(pool) > 0);
 
     if (!pools.length) {
-      throw Error("No priced pools returned by the API.");
+      throw new Error("No priced pools returned.");
     }
 
-    $("markets").innerHTML = "";
-    pools.forEach((pool, index) => {
-      const a = attrs(pool);
+    $("markets").replaceChildren();
+
+    pools.forEach(pool => {
       const option = document.createElement("option");
-      option.value = a.address;
-      option.textContent = (a.name || a.address) +
+      option.value = poolAddress(pool);
+      option.textContent =
+        (attrs(pool).name || poolAddress(pool)) +
         " | " + money(priceOf(pool));
       $("markets").appendChild(option);
     });
 
     $("markets").disabled = false;
-    $("refresh").disabled = false;
     selected = pools[0];
-    $("markets").value = attrs(selected).address;
-    $("status").textContent = "Loaded " + pools.length +
-      " pools. Prices are supplied by GeckoTerminal.";
-    $("updated").textContent = "Fetched: " +
-      new Date().toLocaleString();
+    $("markets").value = poolAddress(selected);
+    lastFetch = Date.now();
 
+    $("updated").textContent = new Date().toLocaleTimeString();
+    showStatus("Loaded " + pools.length + " market pools.");
     render();
-    log("Loaded market list. Demo account starts with $100.");
+    generateSignal();
+    addLog("Market data loaded. Virtual starting balance: $100.");
   } catch (error) {
-    $("status").textContent =
-      "Could not load markets: " + error.message +
-      ". Check network/API access and try again.";
+    showStatus("Could not load markets: " + error.message);
   } finally {
     $("load").disabled = false;
   }
 }
 
-async function refreshPrice() {
+async function refreshMarket() {
   if (!selected) return;
 
-  $("status").textContent = "Refreshing selected market...";
+  const now = Date.now();
+  if (now - lastFetch < 6000) {
+    showStatus("Please wait a few seconds before refreshing again.");
+    return;
+  }
+
+  $("refresh").disabled = true;
+  showStatus("Refreshing selected market...");
 
   try {
-    const address = attrs(selected).address;
+    const address = poolAddress(selected);
     const result = await getJSON(
-      API + "/networks/robinhood/pools/" + address
+      API + "/networks/robinhood/pools/" + encodeURIComponent(address)
     );
-    const fresh = result.data;
 
-    if (!fresh || !priceOf(fresh)) {
-      throw Error("No valid price returned.");
+    if (!result.data || !priceOf(result.data)) {
+      throw new Error("No valid price returned.");
     }
 
-    selected = fresh;
+    selected = result.data;
     pools = pools.map(pool =>
-      attrs(pool).address === address ? fresh : pool
+      poolAddress(pool) === address ? selected : pool
     );
 
-    const option = $("markets").selectedOptions[0];
+    const option = [...$("markets").options].find(
+      item => item.value === address
+    );
     if (option) {
       option.textContent =
-        (attrs(fresh).name || address) + " | " +
-        money(priceOf(fresh));
+        (attrs(selected).name || address) + " | " +
+        money(priceOf(selected));
     }
 
-    $("status").textContent = "Price refreshed successfully.";
-    $("updated").textContent =
-      "Last fetched: " + new Date().toLocaleString();
+    lastFetch = Date.now();
+    $("updated").textContent = new Date().toLocaleTimeString();
+    showStatus("Market refreshed successfully.");
     render();
+    generateSignal();
   } catch (error) {
-    $("status").textContent =
-      "Refresh failed: " + error.message;
+    showStatus("Refresh failed: " + error.message);
+  } finally {
+    $("refresh").disabled = false;
   }
 }
 
-$("load").onclick = loadMarkets;
-$("refresh").onclick = refreshPrice;
+function generateSignal() {
+  if (!selected) {
+    $("signal").textContent = "WAIT";
+    $("signalReason").textContent = "Load a market first.";
+    return;
+  }
+
+  const a = attrs(selected);
+  const p = priceOf(selected);
+  const volume = Number(a.volume_usd?.h24 || 0);
+  const change = Number(a.price_change_percentage?.h24 || 0);
+  const liquidity = Number(a.reserve_in_usd || 0);
+
+  let signal = "WAIT";
+  let reason = "No clear setup from the basic indicators.";
+
+  if (p > 0 && liquidity >= 5000 &&
+      volume >= 1000 && change >= 5) {
+    signal = "BUY WATCH";
+    reason = "Positive 24h change, volume and liquidity thresholds met.";
+  } else if (p > 0 && liquidity >= 5000 &&
+      volume >= 1000 && change <= -5) {
+    signal = "SELL WATCH";
+    reason = "Negative 24h change with sufficient volume and liquidity.";
+  } else {
+    reason = "Thresholds not met, or market data is insufficient.";
+  }
+
+  $("signal").textContent = signal;
+  $("signalReason").textContent =
+    reason + " | Change: " + change.toFixed(2) +
+    "% | Volume: " + money(volume) +
+    " | Liquidity: " + money(liquidity);
+}
 
 $("markets").onchange = () => {
   const address = $("markets").value;
-  selected = pools.find(pool =>
-    attrs(pool).address === address
-  ) || null;
+  selected = pools.find(pool => poolAddress(pool) === address) || null;
   render();
+  generateSignal();
 };
+
+$("load").onclick = loadMarkets;
+$("refresh").onclick = refreshMarket;
+$("generate").onclick = generateSignal;
 
 $("buy").onclick = () => {
   try {
-    if (!selected) throw Error("Load and select a market first.");
-    const p = priceOf(selected);
+    if (!selected || !priceOf(selected)) {
+      throw new Error("Load a market with a valid price first.");
+    }
+
     const amount = Number($("amount").value);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error("Enter a valid positive trade amount.");
+    }
+    if (amount > cash) {
+      throw new Error("Insufficient virtual cash.");
+    }
 
-    if (!p) throw Error("Valid price unavailable.");
-    if (!Number.isFinite(amount) || amount <= 0)
-      throw Error("Enter a valid USD amount.");
-    if (amount > cash) throw Error("Insufficient demo cash.");
+    const address = poolAddress(selected);
+    const pos = positionFor(address);
+    const qty = amount / priceOf(selected);
 
-    const address = attrs(selected).address;
-    const pos = positions[address] || { qty: 0, cost: 0 };
-
-    pos.qty += amount / p;
+    pos.qty += qty;
     pos.cost += amount;
     positions[address] = pos;
     cash -= amount;
 
-    log("DEMO BUY " + (attrs(selected).name || address) +
-      " | " + money(amount) + " at " + money(p));
+    addLog("DEMO BUY " + (attrs(selected).name || address) +
+      " | " + money(amount) + " | " + qty.toFixed(8) + " tokens");
     render();
+    showStatus("Simulated buy completed. No real transaction occurred.");
   } catch (error) {
-    $("status").textContent = error.message;
+    showStatus(error.message);
   }
 };
 
 $("sell").onclick = () => {
   try {
-    if (!selected) throw Error("Select a market first.");
-    const p = priceOf(selected);
-    const amount = Number($("amount").value);
-    const address = attrs(selected).address;
-    const pos = currentPosition();
+    if (!selected || !priceOf(selected)) {
+      throw new Error("Load a market with a valid price first.");
+    }
 
-    if (!p) throw Error("Valid price unavailable.");
-    if (!Number.isFinite(amount) || amount <= 0)
-      throw Error("Enter a valid USD amount.");
-    if (amount > pos.qty * p)
-      throw Error("Not enough demo tokens at the current price.");
+    const amount = Number($("amount").value);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error("Enter a valid positive trade amount.");
+    }
+
+    const address = poolAddress(selected);
+    const pos = positionFor(address);
+    const p = priceOf(selected);
+
+    if (pos.qty <= 0 || amount > pos.qty * p) {
+      throw new Error("Not enough tokens in this demo position.");
+    }
 
     const qtySold = amount / p;
-    const costSold = pos.cost * (qtySold / pos.qty);
+    const costSold = pos.cost * qtySold / pos.qty;
     const profit = amount - costSold;
 
     pos.qty -= qtySold;
     pos.cost -= costSold;
+
     if (pos.qty < 1e-10) {
       pos.qty = 0;
       pos.cost = 0;
@@ -314,22 +429,28 @@ $("sell").onclick = () => {
     cash += amount;
     realized += profit;
 
-    log("DEMO SELL " + (attrs(selected).name || address) +
-      " | " + money(amount) + " | P/L " + money(profit));
+    addLog("DEMO SELL " + (attrs(selected).name || address) +
+      " | " + money(amount) + " | Realized P/L " + money(profit));
     render();
+    showStatus("Simulated sell completed. No real transaction occurred.");
   } catch (error) {
-    $("status").textContent = error.message;
+    showStatus(error.message);
   }
 };
 
 $("reset").onclick = () => {
+  if (!confirm("Reset your virtual account to $100?")) return;
+
   cash = 100;
   realized = 0;
   positions = {};
   logs = [];
   render();
-  log("Demo account reset to $100.");
+  addLog("Demo account reset to $100.");
+  showStatus("Virtual account reset.");
 };
+
+render();
 </script>
 </body>
 </html>
