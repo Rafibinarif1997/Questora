@@ -51,7 +51,7 @@ main{max-width:1200px;margin:auto;padding:22px 14px 50px}.hero{display:flex;just
         <div class="field"><label for="historyStrategy">Strategy</label><select id="historyStrategy"><option value="all">All strategies</option><option>Momentum</option><option>MA Trend (6/24)</option><option>Buy & Hold</option></select></div>
         <div class="field"><label for="historyPeriod">Period</label><select id="historyPeriod"><option value="all">All periods</option><option>In-sample</option><option>Out-of-sample</option></select></div>
       </div>
-      <div class="tablewrap"><table><thead><tr><th>Pool</th><th>Strategy</th><th>Period</th><th>Entry time</th><th>Entry price</th><th>Exit time</th><th>Exit price</th><th>Entry cost</th><th>Entry fee</th><th>Exit fee</th><th>Net P/L</th><th>Return</th><th>Exit reason</th></tr></thead><tbody id="historyBody"><tr><td colspan="13" class="empty">No trades yet.</td></tr></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Pool</th><th>Strategy</th><th>Period</th><th>Entry time</th><th>Entry price</th><th>Exit time</th><th>Exit price</th><th>Buy total cost</th><th>Entry fee</th><th>Sell gross</th><th>Exit fee</th><th>Sell proceeds</th><th>Net P/L</th><th>Return</th><th>Exit reason</th></tr></thead><tbody id="historyBody"><tr><td colspan="15" class="empty">No trades yet.</td></tr></tbody></table></div>
     </section>
   </div>
   <footer>Data source: GeckoTerminal public API. Public endpoints can be rate-limited or change. This page does not connect a wallet, request a private key, or submit transactions.</footer>
@@ -138,52 +138,93 @@ function desired(strategy,c,i){
  return false;
 }
 function simulate(candles,strategy,start,end,startingCash,costPct,poolName,periodName){
- // OOS can use earlier candles as indicator warm-up, but positions only begin inside [start,end).
+ // OOS uses earlier candles for indicator warm-up only; trading is restricted to this period.
  const c=candles.slice(0,end);
- const periodBars=candles.slice(start,end);
+ const bars=candles.slice(start,end);
  const trades=[];
- if(periodBars.length<35)return {trades,returnPct:null,winRate:null,closed:0,maxDD:null,finalEquity:startingCash,dataCount:periodBars.length,warning:'Insufficient history'};
- const fee=costPct/100;
- let cash=startingCash,qty=0,entryPrice=0,entryTime=0,entryCost=0,peak=startingCash,maxDD=0;
- const equityAt=(price)=>qty>0?qty*price*(1-fee):cash;
+ if(bars.length<35){
+  return {trades,returnPct:null,winRate:null,closed:0,maxDD:null,finalEquity:null,dataCount:bars.length,warning:'Insufficient history'};
+ }
+
+ const feeRate=costPct/100;
+ let cash=startingCash, qty=0;
+ let entryPrice=0, entryTime=0, entryGross=0, entryFee=0, entryTotalCost=0;
+ let peak=startingCash,maxDD=0;
+
+ function equityAt(markPrice){
+  return qty>0 ? qty*markPrice*(1-feeRate) : cash;
+ }
  function buy(price,time){
   if(!(price>0)||cash<=0)return;
-  entryCost=cash;qty=cash/(price*(1+fee));entryPrice=price;entryTime=time;cash=0;
+  // Invest all available cash; fee is taken from cash, so qty is based on total cost.
+  entryTotalCost=cash;
+  entryPrice=price;
+  entryTime=time;
+  entryFee=entryTotalCost*feeRate/(1+feeRate);
+  entryGross=entryTotalCost-entryFee;
+  qty=entryGross/price;
+  cash=0;
  }
  function sell(price,time,reason){
-  if(qty<=0)return;
-  const proceeds=qty*price*(1-fee), pnl=proceeds-entryCost, ret=entryCost>0?pnl/entryCost*100:0;
-  trades.push({pool:poolName,strategy,period:periodName,entryTime,entryPrice,exitTime:time,exitPrice:price,pnl,returnPct:ret,reason});
-  cash=proceeds;qty=0;entryCost=0;entryPrice=0;entryTime=0;
+  if(!(price>0)||qty<=0)return;
+  const exitGross=qty*price;
+  const exitFee=exitGross*feeRate;
+  const exitProceeds=exitGross-exitFee;
+  const netPnl=exitProceeds-entryTotalCost;
+  const netReturn=entryTotalCost>0?netPnl/entryTotalCost*100:0;
+  trades.push({
+   pool:poolName,strategy,period:periodName,
+   entryTime,entryPrice,exitTime:time,exitPrice:price,
+   entryCost:entryTotalCost,entryGross,entryFee,
+   exitGross,exitFee,exitProceeds,
+   pnl:netPnl,returnPct:netReturn,reason
+  });
+  cash=exitProceeds;
+  qty=0;
+  entryPrice=0;
+  entryTime=0;
+  entryGross=0;
+  entryFee=0;
+  entryTotalCost=0;
  }
- // Buy & Hold is a single independent position for this period.
- if(strategy==='Buy & Hold')buy(periodBars[0].open,periodBars[0].time);
- for(let j=0;j<periodBars.length;j++){
-  const i=start+j, bar=candles[i];
+
+ if(strategy==='Buy & Hold')buy(bars[0].open,bars[0].time);
+
+ for(let j=0;j<bars.length;j++){
+  const i=start+j,bar=candles[i];
   if(strategy!=='Buy & Hold'&&i>0){
-   // OOS strategy may use earlier candles for warm-up, but signal must be based on completed candles.
    const want=desired(strategy,c,i);
    if(want&&qty===0)buy(bar.open,bar.time);
-   else if(!want&&qty>0)sell(bar.open,bar.time,strategy==='Momentum'?'Momentum condition off':'MA trend turned off');
+   else if(!want&&qty>0){
+    sell(bar.open,bar.time,strategy==='Momentum'?'Momentum condition off':'MA trend turned off');
+   }
   }
   const equity=equityAt(bar.close);
   peak=Math.max(peak,equity);
   if(peak>0)maxDD=Math.max(maxDD,(peak-equity)/peak);
  }
- if(qty>0)sell(periodBars[periodBars.length-1].close,periodBars[periodBars.length-1].time,'End of period');
+ if(qty>0){
+  sell(bars[bars.length-1].close,bars[bars.length-1].time,'End of period');
+ }
  const finalEquity=cash;
  const totalReturn=(finalEquity/startingCash-1)*100;
  const wins=trades.filter(t=>t.pnl>0).length;
- return {trades,returnPct:totalReturn,winRate:trades.length?wins/trades.length*100:null,closed:trades.length,maxDD:maxDD*100,finalEquity,dataCount:periodBars.length,warning:periodBars.length<80?'Short history; interpret cautiously':(trades.length===0?'No trades triggered in this period':'')};
+ return {
+  trades,returnPct:totalReturn,
+  winRate:trades.length?wins/trades.length*100:null,
+  closed:trades.length,maxDD:maxDD*100,
+  finalEquity,dataCount:bars.length,
+  warning:bars.length<80?'Short history; interpret cautiously':(trades.length===0?'No trades triggered in this period':'')
+ };
 }
 function rowHtml(r){
  const cls=r.returnPct===null?'':r.returnPct>=0?'good':'bad';
- return `<tr><td>${esc(r.pool)}</td><td>${esc(r.strategy)}</td><td>${esc(r.period)}</td><td class="${cls}">${r.returnPct===null?'N/A':pct(r.returnPct)}</td><td>${r.winRate===null?'N/A':fmt(r.winRate)+'%'}</td><td>${r.closed}</td><td>${r.maxDD===null?'N/A':fmt(r.maxDD)+'%'}</td><td>${money(r.finalEquity)}</td></tr>`;
+ return `<tr><td>${esc(r.pool)}</td><td>${esc(r.strategy)}</td><td>${esc(r.period)}</td><td class="${cls}">${r.returnPct===null?'N/A':pct(r.returnPct)}</td><td>${r.winRate===null?'N/A':fmt(r.winRate)+'%'}</td><td>${r.closed}</td><td>${r.maxDD===null?'N/A':fmt(r.maxDD)+'%'}</td><td>${r.finalEquity===null?'N/A':money(r.finalEquity)}</td></tr>`;
 }
 function renderHistory(){
  const pool=$('historyPool').value,strat=$('historyStrategy').value,period=$('historyPeriod').value;
  const rows=allTrades.filter(t=>(pool==='all'||t.pool===pool)&&(strat==='all'||t.strategy===strat)&&(period==='all'||t.period===period));
- $('historyBody').innerHTML=rows.length?rows.map(t=>`<tr><td>${esc(t.pool)}</td><td>${esc(t.strategy)}</td><td>${esc(t.period)}</td><td>${esc(timeLabel(t.entryTime))}</td><td>${priceFmt(t.entryPrice)}</td><td>${esc(timeLabel(t.exitTime))}</td><td>${priceFmt(t.exitPrice)}</td><td class="${t.pnl>=0?'good':'bad'}">${t.pnl>=0?'+':''}${money(t.pnl)}</td><td class="${t.returnPct>=0?'good':'bad'}">${pct(t.returnPct)}</td><td>${esc(t.reason)}</td></tr>`).join(''):'<tr><td colspan="13" class="empty">No completed trades match these filters.</td></tr>';
+ $('historyBody').innerHTML=rows.length?rows.map(t=>`<tr><td>${esc(t.pool)}</td><td>${esc(t.strategy)}</td><td>${esc(t.period)}</td><td>${esc(timeLabel(t.entryTime))}</td><td>${priceFmt(t.entryPrice)}</td><td>${esc(timeLabel(t.exitTime))}</td><td>${priceFmt(t.exitPrice)}</td><td class="${t.pnl>=0?'good':'bad'}">${t.pnl>=0?'+':''}${money(t.pnl)}</td><td class="${t.returnPct>=0?'good':'bad'}">${pct(t.returnPct)}</td><td>${esc(t.reason)}</td></tr>`).join(''):'<tr><td colspan="15" class="empty">No completed trades match these filters.</td></tr>';
 }
 async function runBacktest(){
  if(isBusy)return;
@@ -222,15 +263,15 @@ async function runBacktest(){
  finally{isBusy=false;$('loadBtn').disabled=false;$('runBtn').disabled=!document.querySelector('.poolcheck:checked')}
 }
 function exportCsv(){
- const headers=['Pool','Strategy','Period','Entry time','Entry price','Exit time','Exit price','Entry cost USD','Entry fee USD','Exit fee USD','Net P/L USD','Return %','Exit reason'];
- const rows=allTrades.map(t=>[t.pool,t.strategy,t.period,timeLabel(t.entryTime),t.entryPrice,timeLabel(t.exitTime),t.exitPrice,t.entryCost,t.entryFee,t.exitFee,t.pnl,t.returnPct,t.reason]);
+ const headers=['Pool','Strategy','Period','Entry time','Entry price','Exit time','Exit price','Buy total cost USD','Entry fee USD','Sell gross USD','Exit fee USD','Sell proceeds USD','Net P/L USD','Return %','Exit reason'];
+ const rows=allTrades.map(t=>[t.pool,t.strategy,t.period,timeLabel(t.entryTime),t.entryPrice,timeLabel(t.exitTime),t.exitPrice,t.entryCost,t.entryFee,t.exitGross,t.exitFee,t.exitProceeds,t.pnl,t.returnPct,t.reason]);
  const quote=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
  const csv=[headers,...rows].map(r=>r.map(quote).join(',')).join('\r\n');
  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=url;a.download='robinhood-backtest-v3-trades.csv';a.click();URL.revokeObjectURL(url);
 }
 $('loadBtn').addEventListener('click',loadPools);$('runBtn').addEventListener('click',runBacktest);$('exportBtn').addEventListener('click',exportCsv);
-$('clearBtn').addEventListener('click',()=>{allTrades=[];allResults=[];$('resultsBody').innerHTML='<tr><td colspan="8" class="empty">Results cleared.</td></tr>';$('historyBody').innerHTML='<tr><td colspan="13" class="empty">No trades yet.</td></tr>';$('summary').innerHTML='<div class="metric"><small>Markets tested</small><strong>—</strong></div><div class="metric"><small>Trade rows</small><strong>—</strong></div><div class="metric"><small>Best OOS return</small><strong>—</strong></div><div class="metric"><small>Data quality</small><strong>—</strong></div>';$('runBadge').textContent='NOT RUN';$('exportBtn').disabled=true;setStatus('Results cleared. Cached candle data will reload when you run again.');});
+$('clearBtn').addEventListener('click',()=>{allTrades=[];allResults=[];$('resultsBody').innerHTML='<tr><td colspan="8" class="empty">Results cleared.</td></tr>';$('historyBody').innerHTML='<tr><td colspan="15" class="empty">No trades yet.</td></tr>';$('summary').innerHTML='<div class="metric"><small>Markets tested</small><strong>—</strong></div><div class="metric"><small>Trade rows</small><strong>—</strong></div><div class="metric"><small>Best OOS return</small><strong>—</strong></div><div class="metric"><small>Data quality</small><strong>—</strong></div>';$('runBadge').textContent='NOT RUN';$('exportBtn').disabled=true;setStatus('Results cleared. Cached candle data will reload when you run again.');});
 $('poolCount').addEventListener('change',()=>{if(pools.length){const checked=[...document.querySelectorAll('.poolcheck:checked')];const max=Number($('poolCount').value);checked.slice(max).forEach(c=>c.checked=false);syncPoolChecks()}});
 ['historyPool','historyStrategy','historyPeriod'].forEach(id=>$(id).addEventListener('change',renderHistory));
 })();
