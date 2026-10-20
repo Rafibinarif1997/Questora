@@ -2,342 +2,466 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#080b12">
-  <title>RHOOD BOT — Trading Dashboard</title>
-  <style>
-    :root {
-      --bg:#080b12; --panel:#101622; --border:#263247;
-      --text:#eef4ff; --muted:#8d9bb2; --blue:#66a6ff;
-      --green:#48dfaa; --red:#ff6b79; --yellow:#ffd166;
-    }
-    * { box-sizing:border-box; }
-    body {
-      margin:0; background:
-      radial-gradient(ellipse at 50% 0%,#152544 0,transparent 50%),var(--bg);
-      color:var(--text); font-family:Inter,system-ui,Arial,sans-serif;
-    }
-    button,input { font:inherit; }
-    button { cursor:pointer; }
-    .wrap { max-width:1100px; padding:20px; margin:auto; }
-    header {
-      display:flex; justify-content:space-between; align-items:center;
-      gap:12px; flex-wrap:wrap; padding:12px 0 22px;
-    }
-    .brand { font-size:22px; font-weight:900; letter-spacing:1px; }
-    .brand span { color:var(--blue); }
-    .status { color:var(--muted); font-size:12px; }
-    .pill {
-      border:1px solid var(--border); padding:8px 12px;
-      border-radius:30px; font-size:12px; color:var(--yellow);
-    }
-    .hero { padding:22px 0 28px; }
-    .eyebrow { color:var(--blue); font-size:11px; letter-spacing:2px; font-weight:800; }
-    h1 { font-size:clamp(28px,6vw,48px); line-height:1.08; margin:12px 0; }
-    h1 span { color:var(--blue); }
-    p { color:var(--muted); line-height:1.6; }
-    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
-    .panel {
-      background:linear-gradient(145deg,#131b2a,#0d121d);
-      border:1px solid var(--border); border-radius:16px; padding:18px;
-      min-width:0;
-    }
-    .panel h2 { font-size:15px; margin:0 0 16px; }
-    .metric { font-size:25px; font-weight:800; overflow-wrap:anywhere; }
-    .sub { color:var(--muted); font-size:12px; margin-top:7px; }
-    .wide { grid-column:span 2; }
-    .full { grid-column:1/-1; }
-    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .row > * { flex:1; min-width:0; }
-    label { display:block; font-size:12px; color:var(--muted); margin:14px 0 7px; }
-    input {
-      width:100%; background:#080d16; border:1px solid var(--border);
-      color:var(--text); border-radius:10px; padding:12px; outline:none;
-    }
-    input:focus { border-color:var(--blue); }
-    .btn {
-      border:1px solid var(--border); border-radius:10px; padding:12px 14px;
-      background:#17243a; color:var(--text); font-weight:750;
-    }
-    .btn.primary { background:var(--blue); color:#07101d; border-color:var(--blue); }
-    .btn.stop { background:#39151e; color:#ff8b98; border-color:#77313e; }
-    .btn:disabled { opacity:.55; cursor:not-allowed; }
-    .notice {
-      border:1px solid #69572a; background:#211d12; color:#ffdf92;
-      padding:13px; border-radius:12px; font-size:12px; line-height:1.6;
-    }
-    .log {
-      background:#080d16; border:1px solid var(--border); padding:12px;
-      border-radius:10px; min-height:80px; font-size:12px;
-      line-height:1.8; white-space:pre-wrap; overflow-wrap:anywhere;
-    }
-    .good { color:var(--green); } .bad { color:var(--red); }
-    .muted { color:var(--muted); }
-    footer { padding:24px 0; text-align:center; color:var(--muted); font-size:11px; }
-    @media(max-width:720px) {
-      .wrap { padding:14px; }
-      .grid { grid-template-columns:1fr; }
-      .wide,.full { grid-column:auto; }
-      .metric { font-size:23px; }
-      header { align-items:flex-start; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080b12">
+<title>RHOOD BOT — Scanner</title>
+<style>
+:root{--bg:#080b12;--panel:#111927;--border:#27344a;--text:#edf3ff;--muted:#8c9bb2;--blue:#69a7ff;--green:#48dfaa;--red:#ff7180;--yellow:#ffd166}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#142747,transparent 48%),var(--bg);color:var(--text);font:14px Inter,system-ui,Arial}
+.wrap{max-width:1150px;margin:auto;padding:18px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 0 25px}
+.brand{font-size:22px;font-weight:900;letter-spacing:1px}.brand span,h1 span{color:var(--blue)}
+.muted,.sub{color:var(--muted);font-size:12px;line-height:1.6}
+.pill{border:1px solid var(--border);padding:8px 12px;border-radius:20px;font-size:11px;color:var(--yellow)}
+h1{font-size:clamp(28px,5vw,46px);line-height:1.1;margin:10px 0}
+h2{font-size:15px;margin:0 0 15px}
+.hero{padding:12px 0 25px}.eyebrow{font-size:11px;letter-spacing:2px;color:var(--blue);font-weight:800}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.panel{background:linear-gradient(145deg,#131d2d,#0c121d);border:1px solid var(--border);border-radius:15px;padding:17px;min-width:0}
+.wide{grid-column:span 2}.full{grid-column:1/-1}
+.metric{font-size:24px;font-weight:850;overflow-wrap:anywhere}
+label{display:block;color:var(--muted);font-size:12px;margin:13px 0 7px}
+input,select{width:100%;background:#080d16;color:var(--text);border:1px solid var(--border);border-radius:9px;padding:12px;min-width:0}
+button,.btn{border:1px solid var(--border);border-radius:9px;background:#1a2940;color:var(--text);padding:11px 14px;font-weight:750;cursor:pointer;text-decoration:none;display:inline-block;text-align:center}
+button.primary{background:var(--blue);border-color:var(--blue);color:#07101d}
+button.stop{background:#39151e;color:#ff9aa5}
+button:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:9px;flex-wrap:wrap}.row>*{flex:1;min-width:0}
+.notice{background:#211d12;border:1px solid #65542b;color:#ffe09a;border-radius:10px;padding:13px;font-size:12px;line-height:1.6;margin:15px 0}
+.good{color:var(--green)}.bad{color:var(--red)}.yellow{color:var(--yellow)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:680px}
+th,td{text-align:left;padding:12px 9px;border-bottom:1px solid var(--border);white-space:nowrap}
+th{color:var(--muted);font-weight:600}
+td a{color:var(--blue)}
+.log{background:#080d16;border:1px solid var(--border);border-radius:9px;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.8;max-height:200px;overflow:auto}
+.tokenname{font-weight:800}.tag{font-size:10px;border:1px solid var(--border);border-radius:5px;padding:4px 6px}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:25px 0}
+@media(max-width:740px){.wrap{padding:13px}.grid{grid-template-columns:1fr}.wide,.full{grid-column:auto}.metric{font-size:22px}}
+</style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div>
-      <div class="brand">RHOOD <span>BOT</span></div>
-      <div class="status">ON-CHAIN TRADING CONTROL CENTER</div>
-    </div>
-    <div class="pill" id="botStatus">● SAFE MODE</div>
-  </header>
+<header>
+ <div><div class="brand">RHOOD <span>BOT</span></div><div class="muted">TOKEN SCANNER · PAPER TRADING</div></div>
+ <div class="pill" id="mode">● SAFE MODE</div>
+</header>
 
-  <section class="hero">
-    <div class="eyebrow">ROBINHOOD CHAIN · MAINNET</div>
-    <h1>Trade smarter.<br><span>Control every risk.</span></h1>
-    <p>Connection diagnostics and risk settings. Live trading is disabled in this version.</p>
-    <div class="row">
-      <button class="btn primary" id="checkNetwork">Check Mainnet</button>
-      <button class="btn" id="connectWallet">Connect Wallet</button>
-    </div>
-  </section>
+<section class="hero">
+ <div class="eyebrow">ROBINHOOD CHAIN · MAINNET</div>
+ <h1>Find markets.<br><span>Measure the risk.</span></h1>
+ <p class="muted">Market discovery and simulated trading. Real-money execution is not enabled.</p>
+ <div class="row">
+  <button class="primary" id="scan">Scan Markets</button>
+  <button id="checkNetwork">Check Network</button>
+  <a class="btn" href="https://robinhoodchain.blockscout.com/" target="_blank" rel="noopener">Block Explorer ↗</a>
+ </div>
+</section>
 
-  <div class="notice" style="margin-bottom:16px">
-    <strong>Safety notice:</strong> This page never asks for a seed phrase or private key.
-    The dashboard cannot buy or sell tokens. Never enable a live bot without a secure
-    backend, verified token routing, spending limits and independent testing.
+<div class="notice"><b>Important:</b> Market data can be incomplete or delayed. Liquidity and volume do not prove that a token is safe. Paper trading is only a simulation. This page never requests a seed phrase or private key and never submits transactions.</div>
+
+<section class="grid">
+ <div class="panel"><h2>Network status</h2><div class="metric" id="network">Not checked</div><div class="sub">Expected Chain ID: 4663</div></div>
+ <div class="panel"><h2>Markets found</h2><div class="metric" id="count">0</div><div class="sub" id="updated">Not scanned yet</div></div>
+ <div class="panel"><h2>Scanner status</h2><div class="metric yellow" id="scannerStatus">Ready</div><div class="sub">DEX data provider: DEX Screener</div></div>
+
+ <div class="panel full">
+  <h2>Market Scanner</h2>
+  <div class="row">
+   <div><label for="search">Search name / symbol / address</label><input id="search" placeholder="e.g. token name or 0x address"></div>
+   <div><label for="minLiquidity">Minimum liquidity (USD)</label><select id="minLiquidity"><option value="0">Any liquidity</option><option value="1000">$1,000</option><option value="5000" selected>$5,000</option><option value="10000">$10,000</option><option value="25000">$25,000</option><option value="50000">$50,000</option></select></div>
   </div>
+  <div class="row" style="margin-top:12px">
+   <button id="filter">Apply Filters</button>
+   <button id="profiles">Load Latest Profiles</button>
+   <button id="clear">Clear Results</button>
+  </div>
+  <p class="sub">Only markets identified by the provider as Robinhood Chain are displayed. If no results appear, the provider may not index these markets or may be unavailable.</p>
+  <div class="tablewrap">
+   <table>
+    <thead><tr><th>Token / Pair</th><th>Price USD</th><th>24h Change</th><th>24h Volume</th><th>Liquidity</th><th>Buys / Sells</th><th>Risk flag</th><th>Market</th></tr></thead>
+    <tbody id="markets"><tr><td colspan="8" class="muted">Press Scan Markets to load market data.</td></tr></tbody>
+   </table>
+  </div>
+ </div>
 
-  <section class="grid">
-    <div class="panel">
-      <h2>Network</h2>
-      <div class="metric" id="networkValue">Not checked</div>
-      <div class="sub" id="networkSub">Expected chain ID: 4663</div>
-    </div>
-    <div class="panel">
-      <h2>Wallet</h2>
-      <div class="metric" id="walletValue">Disconnected</div>
-      <div class="sub" id="walletSub">No wallet permissions granted</div>
-    </div>
-    <div class="panel">
-      <h2>Trading engine</h2>
-      <div class="metric" style="color:var(--yellow)">DISABLED</div>
-      <div class="sub">No automatic orders are sent</div>
-    </div>
+ <div class="panel">
+  <h2>Paper Trading Wallet</h2>
+  <div class="sub">Virtual balance · USD</div>
+  <div class="metric" id="cash">$100.00</div>
+  <label for="startCash">Reset virtual balance (USD)</label>
+  <input id="startCash" type="number" min="1" max="100000" value="100">
+  <button id="resetPaper" style="width:100%;margin-top:10px">Reset Paper Wallet</button>
+  <p class="sub">This is fictional money. No deposit or real wallet is connected.</p>
+ </div>
 
-    <div class="panel wide">
-      <h2>Token inspector</h2>
-      <label for="tokenAddress">Token contract address</label>
-      <input id="tokenAddress" placeholder="0x..." spellcheck="false" autocomplete="off">
-      <div class="row" style="margin-top:12px">
-        <button class="btn primary" id="inspectToken">Check Address</button>
-        <a class="btn" style="text-align:center;text-decoration:none" href="https://robinhoodchain.blockscout.com/" target="_blank" rel="noopener noreferrer">Open Explorer ↗</a>
-      </div>
-      <p id="tokenResult" class="sub">Address format can be checked locally. This does not establish that a token is safe.</p>
-    </div>
+ <div class="panel wide">
+  <h2>Simulated Order</h2>
+  <label for="selectedToken">Selected token / market</label>
+  <select id="selectedToken"><option value="">Scan and select a market first</option></select>
+  <label for="orderUsd">Order amount (USD)</label>
+  <input id="orderUsd" type="number" min="1" max="100" step="1" value="10">
+  <div class="row" style="margin-top:12px">
+   <button class="primary" id="buy">Simulate Buy</button>
+   <button id="sell">Simulate Sell</button>
+  </div>
+  <p class="sub">Simulation uses the latest available price and a simple estimated 1% fee. It does not model actual slippage or guarantee executable prices.</p>
+ </div>
 
-    <div class="panel">
-      <h2>Bot controls</h2>
-      <div class="row">
-        <button class="btn stop" id="stopBot">STOP</button>
-        <button class="btn" id="resetBot">Reset</button>
-      </div>
-      <p class="sub" id="stopMessage">Safe mode is active. Trading is disabled.</p>
-    </div>
+ <div class="panel">
+  <h2>Open Paper Positions</h2>
+  <div id="positions" class="sub">No open positions.</div>
+ </div>
 
-    <div class="panel">
-      <h2>Risk limits — local preview</h2>
-      <label for="budget">Maximum budget per trade (USD)</label>
-      <input id="budget" type="number" min="0.01" max="5" step="0.01" value="1">
-      <label for="dailyLoss">Daily loss limit (USD)</label>
-      <input id="dailyLoss" type="number" min="0.01" max="5" step="0.01" value="1">
-      <label for="slippage">Maximum slippage (%)</label>
-      <input id="slippage" type="number" min="0.1" max="1" step="0.1" value="0.5">
-      <button class="btn primary" id="saveLimits" style="margin-top:12px;width:100%">Save Preview Settings</button>
-      <p class="sub" id="limitsMessage">These settings are not enforced by a trading engine.</p>
-    </div>
+ <div class="panel wide">
+  <h2>Paper Trade History</h2>
+  <div class="tablewrap"><table style="min-width:440px">
+   <thead><tr><th>Time</th><th>Action</th><th>Token</th><th>Amount</th><th>Price</th></tr></thead>
+   <tbody id="history"><tr><td colspan="5" class="muted">No simulated trades yet.</td></tr></tbody>
+  </table></div>
+ </div>
 
-    <div class="panel wide">
-      <h2>Connection diagnostics</h2>
-      <div class="log" id="logs" aria-live="polite">Ready. No transactions have been sent.</div>
-    </div>
+ <div class="panel">
+  <h2>Emergency Stop</h2>
+  <div class="metric bad" id="engine">DISABLED</div>
+  <p class="sub" id="stopText">Automatic trading is not implemented.</p>
+  <button class="stop" id="stop" style="width:100%">STOP ALL SIMULATION</button>
+ </div>
 
-    <div class="panel">
-      <h2>Live trading</h2>
-      <div class="metric" style="color:var(--red)">LOCKED</div>
-      <p class="sub">Backend and security checks required before real-money trading.</p>
-    </div>
-  </section>
-
-  <footer>RHOOD BOT · Diagnostic build · No profit guarantee · Use at your own risk</footer>
+ <div class="panel full">
+  <h2>Diagnostics</h2>
+  <div class="log" id="logs" aria-live="polite">Ready. No transactions have been sent.</div>
+ </div>
+</section>
+<footer>RHOOD BOT · Scanner and paper-trading prototype · Not financial advice</footer>
 </div>
 
 <script>
 (() => {
-  "use strict";
+"use strict";
+const API = "https://api.dexscreener.com";
+const RPC = "https://rpc.mainnet.chain.robinhood.com";
+const EXPECTED_CHAIN = "0x1237";
+const $ = id => document.getElementById(id);
+let allPairs = [];
+let visiblePairs = [];
+let cash = 100;
+let positions = {};
+let history = [];
+let stopped = false;
+let requestRunning = false;
 
-  const RPC = "https://rpc.mainnet.chain.robinhood.com";
-  const EXPECTED_CHAIN_ID = "0x1237"; // 4663
-  let stopped = true;
-  let provider = null;
+function log(message, cls="") {
+  const line = document.createElement("div");
+  line.className = cls;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+  $("logs").prepend(line);
+}
+function num(v) { const n=Number(v); return Number.isFinite(n)?n:0; }
+function money(v) {
+  if (!Number.isFinite(Number(v))) return "—";
+  return "$"+Number(v).toLocaleString("en-US",{maximumFractionDigits:6});
+}
+function compact(v) {
+  if (!Number.isFinite(Number(v))) return "—";
+  return "$"+Number(v).toLocaleString("en-US",{notation:"compact",maximumFractionDigits:2});
+}
+function price(v) {
+  const n=Number(v);
+  if (!Number.isFinite(n) || n<=0) return "—";
+  return n<0.0001 ? "$"+n.toExponential(3) : "$"+n.toLocaleString("en-US",{maximumFractionDigits:8});
+}
+function shorten(s) { return s ? s.slice(0,6)+"…"+s.slice(-4) : "—"; }
 
-  const $ = id => document.getElementById(id);
-  const logBox = $("logs");
-
-  function log(message, type = "") {
-    const time = new Date().toLocaleTimeString();
-    const line = document.createElement("div");
-    line.textContent = `[${time}] ${message}`;
-    if (type) line.className = type;
-    logBox.prepend(line);
+async function getJSON(url) {
+  const res = await fetch(url, {headers:{"Accept":"application/json"}});
+  if (!res.ok) throw new Error("HTTP "+res.status);
+  return res.json();
+}
+function isRobinhood(pair) {
+  return String(pair?.chainId||"").toLowerCase() === "robinhood";
+}
+function dedupe(pairs) {
+  const map = new Map();
+  for (const p of pairs) {
+    if (!isRobinhood(p) || !p.baseToken || !p.pairAddress) continue;
+    const key = String(p.pairAddress).toLowerCase();
+    const prev = map.get(key);
+    if (!prev || num(p?.liquidity?.usd)>num(prev?.liquidity?.usd)) map.set(key,p);
   }
-
-  function shorten(value) {
-    return value.slice(0, 6) + "..." + value.slice(-4);
+  return [...map.values()];
+}
+function riskFlags(p) {
+  const flags=[];
+  const liq=num(p?.liquidity?.usd), vol=num(p?.volume?.h24);
+  const buys=num(p?.txns?.h24?.buys), sells=num(p?.txns?.h24?.sells);
+  const created=num(p?.pairCreatedAt);
+  if (!liq) flags.push("No liquidity data");
+  else if (liq<5000) flags.push("Low liquidity");
+  if (vol===0) flags.push("No 24h volume");
+  if (vol>0 && liq>0 && vol/liq>10) flags.push("High turnover");
+  if (buys+sells>0 && sells===0) flags.push("No sells recorded");
+  if (created>0 && Date.now()-created<24*60*60*1000) flags.push("New pair <24h");
+  if (!flags.length) flags.push("No basic flags");
+  return flags;
+}
+function safeCell(tr,text,cls="") {
+  const td=document.createElement("td");
+  td.textContent=text;
+  if(cls) td.className=cls;
+  tr.appendChild(td);
+  return td;
+}
+function renderMarkets() {
+  const tbody=$("markets"); tbody.replaceChildren();
+  const query=$("search").value.trim().toLowerCase();
+  const min=num($("minLiquidity").value);
+  visiblePairs=allPairs.filter(p=>{
+    const b=p.baseToken||{},q=p.quoteToken||{};
+    const hay=[b.name,b.symbol,b.address,q.name,q.symbol,q.address,p.pairAddress,p.dexId].join(" ").toLowerCase();
+    return (!query||hay.includes(query)) && num(p?.liquidity?.usd)>=min;
+  }).sort((a,b)=>num(b?.volume?.h24)-num(a?.volume?.h24));
+  $("count").textContent=String(visiblePairs.length);
+  if(!visiblePairs.length) {
+    const tr=document.createElement("tr");
+    const td=document.createElement("td"); td.colSpan=8;
+    td.className="muted";
+    td.textContent=allPairs.length
+      ? "No markets match these filters."
+      : "No indexed Robinhood Chain pairs found. Try Load Latest Profiles or retry later.";
+    tr.appendChild(td); tbody.appendChild(tr);
   }
-
-  async function rpcCall(method, params = []) {
-    const response = await fetch(RPC, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method,
-        params
-      })
-    });
-    if (!response.ok) throw new Error("RPC HTTP status " + response.status);
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message || "RPC error");
-    return data.result;
+  for(const p of visiblePairs.slice(0,100)) {
+    const tr=document.createElement("tr");
+    const b=p.baseToken||{}, q=p.quoteToken||{};
+    const name=document.createElement("td");
+    const strong=document.createElement("div"); strong.className="tokenname";
+    strong.textContent=(b.symbol||"UNKNOWN")+" / "+(q.symbol||"?");
+    const small=document.createElement("div"); small.className="muted";
+    small.textContent=(b.name||"Unknown token")+" · "+(p.dexId||"DEX");
+    name.append(strong,small); tr.appendChild(name);
+    safeCell(tr,price(p.priceUsd));
+    const change=num(p?.priceChange?.h24);
+    safeCell(tr,p?.priceChange?.h24==null?"—":change.toFixed(2)+"%",change>0?"good":change<0?"bad":"");
+    safeCell(tr,compact(num(p?.volume?.h24)));
+    safeCell(tr,compact(num(p?.liquidity?.usd)));
+    safeCell(tr,num(p?.txns?.h24?.buys)+" / "+num(p?.txns?.h24?.sells));
+    const flags=riskFlags(p);
+    safeCell(tr,flags[0],flags[0]==="No basic flags"?"good":"yellow");
+    const td=document.createElement("td"), a=document.createElement("a");
+    a.href=p.url||("https://robinhoodchain.blockscout.com/address/"+(b.address||""));
+    a.target="_blank"; a.rel="noopener noreferrer"; a.textContent="Open ↗";
+    td.appendChild(a); tr.appendChild(td);
+    tr.title="Risk flags: "+flags.join(", ");
+    tbody.appendChild(tr);
   }
-
-  $("checkNetwork").addEventListener("click", async () => {
-    $("checkNetwork").disabled = true;
-    $("networkValue").textContent = "Checking...";
+  updateSelect();
+}
+function updateSelect() {
+  const select=$("selectedToken");
+  const old=select.value;
+  select.replaceChildren();
+  const first=document.createElement("option");
+  first.value=""; first.textContent=visiblePairs.length?"Choose a market":"No market available";
+  select.appendChild(first);
+  visiblePairs.slice(0,100).forEach((p,i)=>{
+    const o=document.createElement("option");
+    o.value=String(i);
+    o.textContent=(p.baseToken?.symbol||"TOKEN")+" / "+(p.quoteToken?.symbol||"?")+" — "+price(p.priceUsd);
+    select.appendChild(o);
+  });
+  if(old && [...select.options].some(o=>o.value===old)) select.value=old;
+}
+async function scan() {
+  if(requestRunning) return;
+  requestRunning=true;
+  $("scan").disabled=true;
+  $("scannerStatus").textContent="Scanning…";
+  log("Fetching indexed market data.");
+  let fetched=[];
+  try {
+    // Pair search may return Robinhood markets, but results are filtered by chainId.
+    const queries=["robinhood","ETH","USDC","USDG"];
+    const results=await Promise.allSettled(
+      queries.map(q=>getJSON(API+"/latest/dex/search?q="+encodeURIComponent(q)))
+    );
+    for(const r of results) {
+      if(r.status==="fulfilled" && Array.isArray(r.value?.pairs)) fetched.push(...r.value.pairs);
+    }
+    // Latest profiles/boost feeds help discover token addresses; pair data is fetched separately.
     try {
-      const chainId = await rpcCall("eth_chainId");
-      if (chainId.toLowerCase() === EXPECTED_CHAIN_ID) {
-        $("networkValue").textContent = "Connected";
-        $("networkValue").className = "metric good";
-        $("networkSub").textContent = "Robinhood Chain · ID 4663";
-        log("Mainnet RPC returned the expected chain ID 4663.", "good");
-      } else {
-        $("networkValue").textContent = "Wrong network";
-        $("networkValue").className = "metric bad";
-        $("networkSub").textContent = "Received chain ID: " + chainId;
-        log("Unexpected chain ID: " + chainId, "bad");
+      const profiles=await getJSON(API+"/token-profiles/latest/v1");
+      if(Array.isArray(profiles)) {
+        const tokens=profiles.filter(x=>String(x.chainId||"").toLowerCase()==="robinhood" && x.tokenAddress);
+        for(const t of tokens.slice(0,8)) {
+          try {
+            const pairs=await getJSON(API+"/token-pairs/v1/robinhood/"+encodeURIComponent(t.tokenAddress));
+            if(Array.isArray(pairs)) fetched.push(...pairs);
+          } catch(e) { /* provider may not index this token */ }
+        }
       }
-    } catch (error) {
-      $("networkValue").textContent = "Unavailable";
-      $("networkValue").className = "metric bad";
-      $("networkSub").textContent = "RPC or browser connection failed";
-      log("Network check failed: " + error.message +
-        ". Browser CORS or RPC rate limits may be responsible.", "bad");
-    } finally {
-      $("checkNetwork").disabled = false;
+    } catch(e) {
+      log("Latest token profiles unavailable: "+e.message);
     }
-  });
-
-  $("connectWallet").addEventListener("click", async () => {
-    if (!window.ethereum) {
-      log("No compatible browser wallet detected. Open this page in a compatible wallet browser.", "bad");
-      $("walletSub").textContent = "Wallet provider not detected";
-      return;
+    allPairs=dedupe(fetched);
+    renderMarkets();
+    $("updated").textContent="Last scan: "+new Date().toLocaleTimeString();
+    $("scannerStatus").textContent=allPairs.length?"Scan complete":"No indexed markets";
+    $("scannerStatus").className="metric "+(allPairs.length?"good":"yellow");
+    log("Scan finished. Matching Robinhood Chain pairs: "+allPairs.length,
+        allPairs.length?"good":"");
+    if(!allPairs.length) log("This may mean the API does not index Robinhood markets, or the browser/provider request failed.");
+  } catch(e) {
+    $("scannerStatus").textContent="Scan failed";
+    $("scannerStatus").className="metric bad";
+    log("Scan failed: "+e.message+". Check internet access and API availability.","bad");
+  } finally {
+    requestRunning=false; $("scan").disabled=false;
+  }
+}
+async function checkNetwork() {
+  $("network").textContent="Checking…";
+  try {
+    const res=await fetch(RPC,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({jsonrpc:"2.0",id:1,method:"eth_chainId",params:[]})});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data=await res.json();
+    if(data.result?.toLowerCase()===EXPECTED_CHAIN) {
+      $("network").textContent="Connected";
+      $("network").className="metric good";
+      log("RPC reports Robinhood Chain mainnet, chain ID 4663.","good");
+    } else {
+      $("network").textContent="Unexpected ID";
+      $("network").className="metric bad";
+      log("Unexpected chain ID: "+String(data.result||"unknown"),"bad");
     }
-    try {
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts"
-      });
-      if (!accounts.length) throw new Error("No account returned");
-      provider = window.ethereum;
-      const chain = await provider.request({ method: "eth_chainId" });
-      $("walletValue").textContent = shorten(accounts[0]);
-      $("walletSub").textContent = chain.toLowerCase() === EXPECTED_CHAIN_ID
-        ? "Wallet connected · Mainnet"
-        : "Connected, but not on Robinhood Chain";
-      log("Wallet connected for address display only. No signing or transactions.", "good");
-      provider.on?.("chainChanged", () => {
-        log("Wallet network changed. Re-check the network before continuing.");
-      });
-      provider.on?.("accountsChanged", accountsNow => {
-        $("walletValue").textContent = accountsNow.length
-          ? shorten(accountsNow[0]) : "Disconnected";
-      });
-    } catch (error) {
-      log("Wallet connection cancelled or failed: " + error.message, "bad");
+  } catch(e) {
+    $("network").textContent="Unavailable";
+    $("network").className="metric bad";
+    log("Network check failed: "+e.message+". Browser CORS may block the request.","bad");
+  }
+}
+function selectedPair() {
+  const i=Number($("selectedToken").value);
+  if($("selectedToken").value==="" || !visiblePairs[i]) return null;
+  return visiblePairs[i];
+}
+function renderPaper() {
+  $("cash").textContent=money(cash);
+  const root=$("positions"); root.replaceChildren();
+  const entries=Object.entries(positions).filter(([k,v])=>v.qty>0);
+  if(!entries.length) { root.textContent="No open positions."; return; }
+  entries.forEach(([key,pos])=>{
+    const div=document.createElement("div");
+    div.style.cssText="padding:8px 0;border-bottom:1px solid var(--border)";
+    const p=allPairs.find(x=>(x.baseToken?.address||"").toLowerCase()===key);
+    const current=num(p?.priceUsd);
+    const value=current*pos.qty;
+    const pnl=value-pos.cost;
+    div.textContent=pos.symbol+": "+pos.qty.toFixed(6)+" units · Value "+money(value)+" · P/L "+money(pnl);
+    div.className=pnl>=0?"good":"bad";
+    root.appendChild(div);
+  });
+  renderHistory();
+}
+function renderHistory() {
+  const tbody=$("history"); tbody.replaceChildren();
+  if(!history.length) {
+    const tr=document.createElement("tr"),td=document.createElement("td");
+    td.colSpan=5;td.textContent="No simulated trades yet.";td.className="muted";
+    tr.appendChild(td);tbody.appendChild(tr);return;
+  }
+  history.slice(0,30).forEach(h=>{
+    const tr=document.createElement("tr");
+    safeCell(tr,h.time);safeCell(tr,h.action);safeCell(tr,h.symbol);
+    safeCell(tr,money(h.amount));safeCell(tr,price(h.price));
+    tbody.appendChild(tr);
+  });
+}
+function paperOrder(action) {
+  if(stopped) { log("Simulation is stopped. Press Reset Paper Wallet to resume.","bad"); return; }
+  const p=selectedPair();
+  if(!p) { log("Choose a market first.","bad"); return; }
+  const priceNow=num(p.priceUsd);
+  if(priceNow<=0) { log("No valid USD price is available for this market.","bad"); return; }
+  const amount=num($("orderUsd").value);
+  if(!Number.isFinite(amount)||amount<=0||amount>100000) {
+    log("Enter a valid simulated order amount.","bad"); return;
+  }
+  const key=String(p.baseToken.address||"").toLowerCase();
+  const symbol=p.baseToken.symbol||"TOKEN";
+  if(!key) { log("Token address is missing; order cancelled.","bad"); return; }
+  if(action==="BUY") {
+    const total=amount*1.01;
+    if(total>cash) { log("Insufficient virtual cash, including the estimated 1% fee.","bad"); return; }
+    const qty=amount/priceNow;
+    cash-=total;
+    if(!positions[key]) positions[key]={qty:0,cost:0,symbol};
+    positions[key].qty+=qty;
+    positions[key].cost+=total;
+    log("Paper BUY: "+symbol+", approximate quantity "+qty.toPrecision(6)+". No real transaction.","good");
+  } else {
+    const pos=positions[key];
+    if(!pos||pos.qty<=0) { log("No paper position exists for "+symbol,"bad"); return; }
+    const qtyWanted=amount/priceNow;
+    const qty=Math.min(pos.qty,qtyWanted);
+    const gross=qty*priceNow;
+    const net=gross*0.99;
+    const costShare=pos.cost*(qty/pos.qty);
+    pos.qty-=qty;pos.cost-=costShare;cash+=net;
+    if(pos.qty<1e-12) delete positions[key];
+    log("Paper SELL: "+symbol+", approximate proceeds "+money(net)+". No real transaction.","good");
+  }
+  history.unshift({time:new Date().toLocaleTimeString(),action,symbol,amount,price:priceNow});
+  renderPaper();
+}
+$("scan").addEventListener("click",scan);
+$("checkNetwork").addEventListener("click",checkNetwork);
+$("filter").addEventListener("click",renderMarkets);
+$("search").addEventListener("keydown",e=>{if(e.key==="Enter")renderMarkets()});
+$("clear").addEventListener("click",()=>{allPairs=[];visiblePairs=[];renderMarkets();$("scannerStatus").textContent="Cleared";log("Scanner results cleared.")});
+$("profiles").addEventListener("click",async()=>{
+  $("scannerStatus").textContent="Loading…";
+  try {
+    const data=await getJSON(API+"/token-profiles/latest/v1");
+    const tokens=(Array.isArray(data)?data:[]).filter(t=>String(t.chainId||"").toLowerCase()==="robinhood");
+    let got=[];
+    for(const t of tokens.slice(0,12)) {
+      try {
+        const p=await getJSON(API+"/token-pairs/v1/robinhood/"+encodeURIComponent(t.tokenAddress));
+        if(Array.isArray(p))got.push(...p);
+      } catch(e) {}
     }
-  });
-
-  $("inspectToken").addEventListener("click", async () => {
-    const address = $("tokenAddress").value.trim();
-    const result = $("tokenResult");
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      result.textContent = "Invalid address format. Enter a 0x address with 40 hexadecimal characters.";
-      result.className = "sub bad";
-      return;
-    }
-    result.textContent = "Checking whether contract code exists...";
-    result.className = "sub";
-    try {
-      const code = await rpcCall("eth_getCode", [address, "latest"]);
-      if (code === "0x" || code === "0x0") {
-        result.textContent = "No contract code found at this address on the queried chain.";
-        result.className = "sub bad";
-      } else {
-        result.textContent = "Contract code exists. This does NOT verify token safety, liquidity, sellability, ownership, or honeypot risk.";
-        result.className = "sub good";
-      }
-      log("Contract-code check completed. It is not a token safety audit.");
-    } catch (error) {
-      result.textContent = "Could not check contract code: " + error.message;
-      result.className = "sub bad";
-      log("Token check failed: " + error.message, "bad");
-    }
-  });
-
-  $("saveLimits").addEventListener("click", () => {
-    const budget = Number($("budget").value);
-    const dailyLoss = Number($("dailyLoss").value);
-    const slippage = Number($("slippage").value);
-
-    if (!Number.isFinite(budget) || budget < 0.01 || budget > 5 ||
-        !Number.isFinite(dailyLoss) || dailyLoss < 0.01 || dailyLoss > 5 ||
-        !Number.isFinite(slippage) || slippage < 0.1 || slippage > 1) {
-      $("limitsMessage").textContent =
-        "Invalid limits. Trade budget/loss must be $0.01–$5; slippage must be 0.1–1%.";
-      $("limitsMessage").className = "sub bad";
-      return;
-    }
-    $("limitsMessage").textContent =
-      `Preview saved: $${budget.toFixed(2)} per trade; $${dailyLoss.toFixed(2)} daily loss; ${slippage}% slippage. Not enforced on-chain.`;
-    $("limitsMessage").className = "sub good";
-    log("Risk preview settings updated. No trade was placed.");
-  });
-
-  $("stopBot").addEventListener("click", () => {
-    stopped = true;
-    $("botStatus").textContent = "● STOPPED";
-    $("botStatus").style.color = "var(--red)";
-    $("stopMessage").textContent = "Stopped. Trading remains disabled.";
-    log("STOP activated. This disables no running server process because no trading engine exists.", "bad");
-  });
-
-  $("resetBot").addEventListener("click", () => {
-    stopped = true;
-    $("botStatus").textContent = "● SAFE MODE";
-    $("botStatus").style.color = "var(--yellow)";
-    $("stopMessage").textContent = "Safe mode is active. Trading is disabled.";
-    $("limitsMessage").textContent = "These settings are not enforced by a trading engine.";
-    log("Dashboard reset to safe mode. Trading remains disabled.");
-  });
-
-  // Deliberately no private-key input, signing, approvals, swaps, or auto-trading.
-  if (!stopped) stopped = true;
-  log("Safety lock active. This frontend cannot execute trades.");
+    allPairs=dedupe([...allPairs,...got]);renderMarkets();
+    $("scannerStatus").textContent=allPairs.length?"Profiles loaded":"No indexed profiles";
+    log("Profile discovery completed. Matching markets: "+allPairs.length);
+  } catch(e) {
+    $("scannerStatus").textContent="Unavailable";
+    log("Profile request failed: "+e.message,"bad");
+  }
+});
+$("buy").addEventListener("click",()=>paperOrder("BUY"));
+$("sell").addEventListener("click",()=>paperOrder("SELL"));
+$("resetPaper").addEventListener("click",()=>{
+  const start=num($("startCash").value);
+  if(start<1||start>100000){log("Virtual balance must be between $1 and $100,000.","bad");return}
+  cash=start;positions={};history=[];stopped=false;
+  $("mode").textContent="● PAPER MODE";$("mode").style.color="var(--green)";
+  $("engine").textContent="PAPER ONLY";$("engine").className="metric good";
+  $("stopText").textContent="Only simulated orders are enabled.";
+  renderPaper();log("Paper wallet reset to "+money(cash)+". No real funds involved.");
+});
+$("stop").addEventListener("click",()=>{
+  stopped=true;
+  $("mode").textContent="● STOPPED";$("mode").style.color="var(--red)";
+  $("engine").textContent="STOPPED";$("engine").className="metric bad";
+  $("stopText").textContent="Paper orders blocked until paper wallet reset.";
+  log("Emergency stop activated for this page's paper trading.","bad");
+});
+renderPaper();
+log("Safe mode active. Live trading and real transactions are not implemented.");
 })();
 </script>
 </body>
