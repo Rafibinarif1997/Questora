@@ -2,95 +2,147 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RH Trading Bot — Demo</title>
-  <style>
-    body {
-      background: #10131b;
-      color: #e9eef7;
-      font-family: Arial, sans-serif;
-      padding: 24px;
-    }
-    main {
-      max-width: 480px;
-      margin: 40px auto;
-      padding: 24px;
-      border: 1px solid #30394a;
-      border-radius: 16px;
-      background: #191f2c;
-    }
-    button {
-      padding: 12px 18px;
-      border: 0;
-      border-radius: 8px;
-      background: #77e0b5;
-      color: #10131b;
-      font-weight: bold;
-    }
-    #status { margin-top: 20px; line-height: 1.8; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RH BOT | Paper Trading</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1020;color:#e7edf9;font-family:Arial,sans-serif;padding:18px}
+main{max-width:600px;margin:20px auto}
+h1{color:#75edbb}
+.card{background:#151d30;border:1px solid #293650;border-radius:14px;padding:18px;margin:14px 0}
+.muted{color:#9cacc6;font-size:13px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.value{font-size:24px;font-weight:bold;margin-top:8px}
+input{width:100%;padding:12px;margin:8px 0 14px;background:#0b1020;color:white;border:1px solid #35425c;border-radius:8px}
+button{padding:12px;border:0;border-radius:8px;font-weight:bold;cursor:pointer}
+.buy{background:#75edbb;color:#08140f}
+.sell{background:#ff8585;color:#250b0b}
+.reset{background:#293650;color:white}
+.actions{display:flex;gap:10px}
+.actions button{flex:1}
+#message{line-height:1.6;overflow-wrap:anywhere}
+</style>
 </head>
 <body>
-  <main>
-    <h2>RH Trading Bot</h2>
-    <p>Robinhood Chain Testnet</p>
-    <button id="check">Check Connection</button>
-    <div id="status">Ready to test.</div>
-  </main>
+<main>
+<h1>RH BOT</h1>
+<p class="muted">ROBINHOOD CHAIN · PAPER TRADING ONLY</p>
 
-  <script>
-    const RPC =
-      "https://rpc.testnet.chain.robinhood.com";
+<div class="card">
+<div class="muted">Virtual Portfolio Value</div>
+<div class="value" id="equity">$100.00</div>
+<div class="muted">Starting cash: $100 · No real trades</div>
+</div>
 
-    document.getElementById("check").onclick =
-      async function () {
-        const status = document.getElementById("status");
-        status.textContent = "Connecting...";
+<div class="stats">
+<div class="card">
+<div class="muted">Available Cash</div>
+<div class="value" id="cash">$100.00</div>
+</div>
+<div class="card">
+<div class="muted">Unrealized + Realized P/L</div>
+<div class="value" id="pnl">$0.00</div>
+</div>
+</div>
 
-        try {
-          const response = await fetch(RPC, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              jsonrpc: "2.0",
-              method: "eth_chainId",
-              params: [],
-              id: 1
-            })
-          });
+<div class="card">
+<h3>Demo Market</h3>
+<label for="price">Token price (virtual USD)</label>
+<input id="price" type="number" min="0.000001" step="any" value="1">
+<label for="amount">Trade amount (USD)</label>
+<input id="amount" type="number" min="0.01" step="any" value="10">
+<div class="actions">
+<button class="buy" id="buy">Demo Buy</button>
+<button class="sell" id="sell">Demo Sell</button>
+</div>
+<p class="muted">This is a simulated market. The price does not come from a live DEX.</p>
+</div>
 
-          if (!response.ok) {
-            throw new Error("HTTP " + response.status);
-          }
+<div class="card">
+<h3>Position</h3>
+<div id="position">No tokens held.</div>
+</div>
 
-          const data = await response.json();
+<div class="card">
+<h3>Activity</h3>
+<div id="message" class="muted">Ready for your first demo trade.</div>
+<p><button class="reset" id="reset">Reset Demo</button></p>
+</div>
+</main>
 
-          if (data.error) {
-            throw new Error(data.error.message);
-          }
+<script>
+let cash=100;
+let tokens=0;
+let cost=0;
+let realized=0;
+let history=[];
 
-          const chainId = parseInt(data.result, 16);
+const $=id=>document.getElementById(id);
+const money=n=>"$"+n.toFixed(2);
 
-          if (chainId !== 46630) {
-            throw new Error(
-              "Unexpected Chain ID: " + chainId
-            );
-          }
+function currentPrice(){
+  const p=Number($("price").value);
+  if(!Number.isFinite(p)||p<=0) throw Error("Enter a valid positive price.");
+  return p;
+}
+function amount(){
+  const a=Number($("amount").value);
+  if(!Number.isFinite(a)||a<=0) throw Error("Enter a valid trade amount.");
+  return a;
+}
+function render(msg){
+  const p=Number($("price").value);
+  const marketValue=tokens*(Number.isFinite(p)&&p>0?p:0);
+  const pnl=realized+marketValue-cost;
+  $("cash").textContent=money(cash);
+  $("equity").textContent=money(cash+marketValue);
+  $("pnl").textContent=money(pnl);
+  $("position").textContent=tokens>0
+    ? tokens.toFixed(6)+" demo tokens · Cost basis "+money(cost)
+    : "No tokens held.";
+  $("message").textContent=msg;
+}
 
-          status.innerHTML =
-            "Connection successful!<br>" +
-            "Network: Robinhood Chain Testnet<br>" +
-            "Chain ID: " + chainId + "<br>" +
-            "Mode: Demo only — no real trades";
-        } catch (error) {
-          status.textContent =
-            "Connection failed: " + error.message +
-            ". RPC or browser access may be blocked.";
-        }
-      };
-  </script>
+$("buy").onclick=()=>{
+  try{
+    const p=currentPrice(),a=amount();
+    if(a>cash) throw Error("Not enough virtual cash.");
+    const q=a/p;
+    cash-=a;
+    tokens+=q;
+    cost+=a;
+    history.push({type:"BUY",price:p,amount:a});
+    render("DEMO BUY: "+q.toFixed(6)+" tokens at "+money(p));
+  }catch(e){render(e.message)}
+};
+
+$("sell").onclick=()=>{
+  try{
+    const p=currentPrice(),a=amount();
+    const q=a/p;
+    if(q>tokens+1e-10) throw Error("Not enough demo tokens to sell this USD value.");
+    const soldCost=cost*(q/tokens);
+    const proceeds=q*p;
+    realized+=proceeds-soldCost;
+    cash+=proceeds;
+    tokens-=q;
+    cost-=soldCost;
+    if(tokens<1e-10){tokens=0;cost=0}
+    history.push({type:"SELL",price:p,amount:proceeds});
+    render("DEMO SELL: "+q.toFixed(6)+" tokens at "+money(p)+
+      ". Realized P/L: "+money(proceeds-soldCost));
+  }catch(e){render(e.message)}
+};
+
+$("reset").onclick=()=>{
+  cash=100;tokens=0;cost=0;realized=0;history=[];
+  $("price").value="1";$("amount").value="10";
+  render("Demo reset. Starting balance: $100.");
+};
+
+$("price").addEventListener("input",()=>render("Price updated for simulation."));
+render("Ready. All trades are virtual.");
+</script>
 </body>
 </html>
