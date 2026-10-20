@@ -4,11 +4,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RH BOT | Auto Signal Monitor</title>
+<title>RH BOT | Paper Trader & Backtest</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;padding:16px;background:#0b1020;color:#edf2ff;font-family:Arial,sans-serif}
-main{max-width:680px;margin:auto}
+main{max-width:700px;margin:auto}
 h1{color:#75edbb}
 .card{background:#151d30;border:1px solid #30405c;border-radius:14px;padding:16px;margin:14px 0}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -19,39 +19,33 @@ button{border:0;background:#75edbb;color:#08140f;font-weight:bold;cursor:pointer
 button:disabled{opacity:.5}
 .secondary{background:#34415b;color:white}
 .sell{background:#ff8585;color:#270909}
-#signal{font-size:27px;color:#75edbb}
-#status,#signalReason,#activity{overflow-wrap:anywhere;line-height:1.7}
+#signal{font-size:26px;color:#75edbb}
+#status,#signalReason,#activity,#backtestStatus{overflow-wrap:anywhere;line-height:1.7}
 input,select{background:#0b1020;color:white;border:1px solid #35425c}
+.good{color:#75edbb}
+.bad{color:#ff8585}
 </style>
 </head>
 <body>
 <main>
 <h1>RH BOT</h1>
-<p class="muted">ROBINHOOD CHAIN · AUTO MONITOR · PAPER TRADING</p>
+<p class="muted">ROBINHOOD CHAIN · LIVE DATA · PAPER TRADING</p>
 
 <div class="card">
 <h3>1. Market Connection</h3>
 <button id="load">Load Live Markets</button>
 <div id="status" class="muted">Ready.</div>
-<div class="muted">Monitor status</div>
-<div id="monitor" class="value">STOPPED</div>
-<div class="muted">Next refresh</div>
-<div id="countdown" class="muted">—</div>
-<div class="grid">
-<button id="start" disabled>Start Auto Monitor</button>
-<button id="stop" class="secondary" disabled>Stop Monitor</button>
-</div>
 </div>
 
 <div class="card">
-<h3>2. Market</h3>
+<h3>2. Select Market</h3>
 <select id="markets" disabled>
 <option value="">Load markets first</option>
 </select>
-<button id="refresh" class="secondary" disabled>Refresh Now</button>
+<button id="refresh" class="secondary" disabled>Refresh Market</button>
 <div class="muted">Trading pair</div>
 <div id="pair" class="value">—</div>
-<div class="muted">Price (USD)</div>
+<div class="muted">Current price (USD)</div>
 <div id="price" class="value">—</div>
 <div class="grid">
 <div><div class="muted">Liquidity</div><div id="liquidity" class="value">—</div></div>
@@ -62,11 +56,34 @@ input,select{background:#0b1020;color:white;border:1px solid #35425c}
 </div>
 
 <div class="card">
-<h3>3. Auto Signal</h3>
+<h3>3. Trading Signal</h3>
 <div id="signal">WAIT</div>
 <div id="signalReason" class="muted">Load a market first.</div>
-<button id="generate" disabled>Generate Signal Now</button>
-<p class="muted">Signals use simple 24-hour market rules. They are not guaranteed predictions.</p>
+<button id="generate" disabled>Generate Signal</button>
+</div>
+
+<div class="card">
+<h3>4. Historical Backtest</h3>
+<p class="muted">
+Tests a simple momentum strategy using hourly historical candles.
+It does not place real trades.
+</p>
+<button id="backtest" disabled>Run Backtest</button>
+<div id="backtestStatus" class="muted">Select a market first.</div>
+<div id="backtestResults" hidden>
+<div class="grid">
+<div><div class="muted">Completed trades</div><div id="btTrades" class="value">—</div></div>
+<div><div class="muted">Win rate</div><div id="btWin" class="value">—</div></div>
+<div><div class="muted">Net return</div><div id="btReturn" class="value">—</div></div>
+<div><div class="muted">Max drawdown</div><div id="btDD" class="value">—</div></div>
+</div>
+<div id="btDetails" class="muted"></div>
+</div>
+<p class="muted">
+Test rules: buy after a positive 24h momentum signal, hold for 24 hours,
+and exit. Assumed cost: 0.5% per side for fees and slippage.
+Historical results do not predict future performance.
+</p>
 </div>
 
 <div class="grid">
@@ -77,20 +94,21 @@ input,select{background:#0b1020;color:white;border:1px solid #35425c}
 </div>
 
 <div class="card">
-<h3>4. Demo Trading</h3>
+<h3>5. Demo Trading</h3>
 <label class="muted" for="amount">Trade amount (USD)</label>
 <input id="amount" type="number" min="0.01" step="any" value="10">
 <button id="buy" disabled>Demo Buy</button>
 <button id="sell" class="sell" disabled>Demo Sell</button>
 <div id="position" class="muted">No position.</div>
-<button id="reset" class="secondary">Reset Account</button>
+<button id="reset" class="secondary">Reset Demo Account</button>
 </div>
 
 <div class="card">
 <h3>Activity Log</h3>
-<div id="activity" class="muted">No activity yet.</div>
+<div id="activity" class="muted">No trades yet.</div>
 </div>
-<p class="muted">Simulation only. No wallet, private key, or real transactions.</p>
+
+<p class="muted">Educational demo only. No wallet, private key, or real transactions.</p>
 </main>
 
 <script>
@@ -99,10 +117,10 @@ input,select{background:#0b1020;color:white;border:1px solid #35425c}
 const API = "https://api.geckoterminal.com/api/v2";
 const $ = id => document.getElementById(id);
 const money = n => "$" + Number(n).toLocaleString("en-US", {
-  minimumFractionDigits:2, maximumFractionDigits:6
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 6
 });
 
-const INTERVAL_MS = 60000;
 let pools = [];
 let selected = null;
 let cash = 100;
@@ -110,9 +128,6 @@ let realized = 0;
 let positions = {};
 let logs = [];
 let lastFetch = 0;
-let nextRefresh = 0;
-let timer = null;
-let countdownTimer = null;
 let busy = false;
 
 function attrs(pool) {
@@ -122,15 +137,14 @@ function address(pool) {
   return attrs(pool).address || "";
 }
 function priceOf(pool) {
-  const n = Number(attrs(pool).base_token_price_usd);
-  return Number.isFinite(n) && n > 0 ? n : 0;
+  const p = Number(attrs(pool).base_token_price_usd);
+  return Number.isFinite(p) && p > 0 ? p : 0;
 }
-function positionFor(key) {
+function posFor(key) {
   return positions[key] || {qty:0,cost:0};
 }
 function currentPosition() {
-  return selected ? positionFor(address(selected)) :
-    {qty:0,cost:0};
+  return selected ? posFor(address(selected)) : {qty:0,cost:0};
 }
 function status(message) {
   $("status").textContent = message;
@@ -142,18 +156,25 @@ function log(message) {
   $("activity").style.whiteSpace = "pre-line";
 }
 async function request(url) {
-  const response = await fetch(url, {
-    headers:{"Accept":"application/json;version=20230302"}
+  const r = await fetch(url, {
+    headers: {"Accept":"application/json;version=20230203"}
   });
-  if (!response.ok) throw Error("API HTTP "+response.status);
-  return response.json();
+  if (!r.ok) throw Error("API HTTP "+r.status);
+  return r.json();
 }
 
 function render() {
-  const p = priceOf(selected);
   const a = attrs(selected);
+  const p = priceOf(selected);
   const pos = currentPosition();
   const value = pos.qty*p;
+
+  $("pair").textContent = a.name || address(selected) || "—";
+  $("price").textContent = p ? money(p) : "—";
+  $("liquidity").textContent = money(Number(a.reserve_in_usd)||0);
+  $("volume").textContent = money(Number(a.volume_usd?.h24)||0);
+  $("change").textContent =
+    Number(a.price_change_percentage?.h24||0).toFixed(2)+"%";
 
   $("cash").textContent = money(cash);
   $("equity").textContent = money(cash+value);
@@ -164,53 +185,44 @@ function render() {
       " | Value: "+money(value)
     : "No position in selected market.";
 
-  $("pair").textContent = a.name || address(selected) || "—";
-  $("price").textContent = p ? money(p) : "—";
-  $("liquidity").textContent = money(Number(a.reserve_in_usd)||0);
-  $("volume").textContent = money(Number(a.volume_usd?.h24)||0);
-  $("change").textContent =
-    Number(a.price_change_percentage?.h24||0).toFixed(2)+"%";
-
   const enabled = !!selected && p>0;
   $("refresh").disabled = !selected || busy;
   $("generate").disabled = !enabled;
   $("buy").disabled = !enabled;
   $("sell").disabled = !enabled;
-  $("start").disabled = !enabled || !!timer;
-  $("stop").disabled = !timer;
+  $("backtest").disabled = !enabled || busy;
 }
 
 function generateSignal() {
-  try {
-    if (!selected) throw Error("Load a market first.");
-
-    const a = attrs(selected);
-    const p = priceOf(selected);
-    const vol = Number(a.volume_usd?.h24||0);
-    const liq = Number(a.reserve_in_usd||0);
-    const ch = Number(a.price_change_percentage?.h24||0);
-
-    let signal = "WAIT";
-    let reason = "Conditions do not meet signal thresholds.";
-
-    if (!p) {
-      reason = "Price unavailable. Refresh market data.";
-    } else if (vol>=1000 && liq>=5000 && ch>=5) {
-      signal = "BUY WATCH";
-      reason = "Positive 24h change with volume and liquidity thresholds met.";
-    } else if (vol>=1000 && liq>=5000 && ch<=-5) {
-      signal = "SELL WATCH";
-      reason = "Negative 24h change with volume and liquidity thresholds met.";
-    }
-
-    $("signal").textContent = signal;
-    $("signalReason").textContent =
-      reason+" | 24h change: "+ch.toFixed(2)+
-      "% | Volume: "+money(vol)+" | Liquidity: "+money(liq);
-  } catch(e) {
-    $("signal").textContent = "ERROR";
-    $("signalReason").textContent = e.message;
+  if (!selected) {
+    $("signal").textContent = "WAIT";
+    $("signalReason").textContent = "Load a market first.";
+    return;
   }
+
+  const a = attrs(selected);
+  const p = priceOf(selected);
+  const vol = Number(a.volume_usd?.h24||0);
+  const liq = Number(a.reserve_in_usd||0);
+  const ch = Number(a.price_change_percentage?.h24||0);
+
+  let signal = "WAIT";
+  let reason = "Conditions do not meet the strategy thresholds.";
+
+  if (!p) {
+    reason = "Price unavailable.";
+  } else if (vol>=1000 && liq>=5000 && ch>=5) {
+    signal = "BUY WATCH";
+    reason = "Positive 24h change and sufficient volume/liquidity.";
+  } else if (vol>=1000 && liq>=5000 && ch<=-5) {
+    signal = "SELL WATCH";
+    reason = "Negative 24h change and sufficient volume/liquidity.";
+  }
+
+  $("signal").textContent = signal;
+  $("signalReason").textContent = reason+
+    " | Change: "+ch.toFixed(2)+"% | Volume: "+money(vol)+
+    " | Liquidity: "+money(liq);
 }
 
 async function loadMarkets() {
@@ -239,7 +251,7 @@ async function loadMarkets() {
     $("updated").textContent = new Date().toLocaleTimeString();
     render();
     generateSignal();
-    log("Market list loaded. Virtual cash: $100.");
+    log("Market list loaded. Virtual balance: $100.");
     status("Markets loaded successfully.");
   } catch(e) {
     status("Load failed: "+e.message);
@@ -255,10 +267,8 @@ async function refreshMarket() {
     status("Please wait a few seconds before refreshing.");
     return;
   }
-
   busy = true;
   render();
-  status("Fetching latest market data...");
   try {
     const key = address(selected);
     const result = await request(
@@ -277,8 +287,7 @@ async function refreshMarket() {
     $("updated").textContent = new Date().toLocaleTimeString();
     render();
     generateSignal();
-    status("Market refreshed; signal updated.");
-    log("Market data refreshed.");
+    status("Market refreshed.");
   } catch(e) {
     status("Refresh failed: "+e.message);
   } finally {
@@ -287,64 +296,165 @@ async function refreshMarket() {
   }
 }
 
-function stopMonitor() {
-  if (timer) clearInterval(timer);
-  if (countdownTimer) clearInterval(countdownTimer);
-  timer = null;
-  countdownTimer = null;
-  $("monitor").textContent = "STOPPED";
-  $("countdown").textContent = "—";
+/* Historical backtest */
+async function runBacktest() {
+  if (!selected || busy) return;
+
+  busy = true;
+  $("backtestResults").hidden = true;
+  $("backtestStatus").textContent = "Downloading historical hourly candles...";
   render();
-}
 
-function startMonitor() {
-  if (!selected || timer) return;
+  try {
+    const key = address(selected);
+    const url = API+"/networks/robinhood/pools/"+
+      encodeURIComponent(key)+
+      "/ohlcv/hour?aggregate=1&limit=100&currency=usd";
 
-  $("monitor").textContent = "RUNNING";
-  nextRefresh = Date.now()+INTERVAL_MS;
+    const result = await request(url);
+    const list = result.data?.attributes?.ohlcv_list;
 
-  timer = setInterval(async ()=>{
-    if (document.hidden || busy) return;
-    await refreshMarket();
-    nextRefresh = Date.now()+INTERVAL_MS;
-  }, INTERVAL_MS);
+    if (!Array.isArray(list) || list.length<50) {
+      throw Error("Not enough historical candles for a useful test.");
+    }
 
-  countdownTimer = setInterval(()=>{
-    const seconds = Math.max(0,Math.ceil((nextRefresh-Date.now())/1000));
-    $("countdown").textContent = seconds+" seconds";
-  },1000);
+    // API candles are newest-first; reverse to chronological order.
+    const candles = list.map(c=>({
+      time:Number(c[0]),
+      open:Number(c[1]),
+      high:Number(c[2]),
+      low:Number(c[3]),
+      close:Number(c[4]),
+      volume:Number(c[5])
+    })).filter(c=>
+      c.time>0 && c.open>0 && c.close>0 &&
+      Number.isFinite(c.volume)
+    ).sort((a,b)=>a.time-b.time);
 
-  $("countdown").textContent = "60 seconds";
-  status("Auto monitor started. Refresh interval: 60 seconds.");
-  log("Auto monitor started.");
-  render();
+    if (candles.length<50)
+      throw Error("Not enough valid historical candles.");
+
+    const feeSide = 0.005;
+    const holdHours = 24;
+    const trades = [];
+    let i = 25;
+
+    while (i+holdHours<candles.length) {
+      // Use only completed candles before the entry candle.
+      const previousClose = candles[i-1].close;
+      const oldClose = candles[i-25].close;
+      const change = (previousClose/oldClose-1)*100;
+
+      let volume24h = 0;
+      for (let j=i-24;j<i;j++) {
+        volume24h += candles[j].volume;
+      }
+
+      // A simple positive-momentum entry rule.
+      // No historical liquidity is available in this OHLCV response.
+      if (change>=5 && volume24h>=1000) {
+        const entry = candles[i].open;
+        const exit = candles[i+holdHours].close;
+
+        if (entry>0 && exit>0) {
+          const netReturn =
+            (exit*(1-feeSide))/(entry*(1+feeSide))-1;
+
+          trades.push({
+            entryTime:candles[i].time,
+            exitTime:candles[i+holdHours].time,
+            change,
+            netReturn
+          });
+        }
+
+        // Avoid overlapping positions.
+        i += holdHours;
+      } else {
+        i++;
+      }
+    }
+
+    if (!trades.length) {
+      $("backtestStatus").textContent =
+        "No trades matched this rule in the available history. " +
+        "This is a result, not an error.";
+      $("backtestResults").hidden = true;
+      return;
+    }
+
+    let equity = 100;
+    let peak = 100;
+    let maxDD = 0;
+    let wins = 0;
+
+    trades.forEach(t=>{
+      equity *= (1+t.netReturn);
+      peak = Math.max(peak,equity);
+      maxDD = Math.max(maxDD,(peak-equity)/peak);
+      if (t.netReturn>0) wins++;
+    });
+
+    const netReturn = (equity/100-1)*100;
+    const winRate = wins/trades.length*100;
+
+    $("btTrades").textContent = String(trades.length);
+    $("btWin").textContent = winRate.toFixed(1)+"%";
+    $("btReturn").textContent =
+      (netReturn>=0?"+":"")+netReturn.toFixed(2)+"%";
+    $("btReturn").className = "value "+(netReturn>=0?"good":"bad");
+    $("btDD").textContent = (maxDD*100).toFixed(2)+"%";
+
+    const first = new Date(trades[0].entryTime*1000).toLocaleDateString();
+    const last = new Date(trades[trades.length-1].exitTime*1000)
+      .toLocaleDateString();
+
+    $("btDetails").textContent =
+      "Pair: "+(attrs(selected).name||key)+
+      " | Candles: "+candles.length+
+      " | Period tested: "+first+" to "+last+
+      " | Starting test equity: $100"+
+      " | Ending test equity: "+money(equity)+
+      ". Fees/slippage assumption: 0.5% per side.";
+
+    $("backtestResults").hidden = false;
+    $("backtestStatus").textContent =
+      "Backtest completed. Results are historical simulation only.";
+    log("Backtest completed for "+(attrs(selected).name||key)+
+      ": "+trades.length+" trades, return "+netReturn.toFixed(2)+"%.");
+
+  } catch(e) {
+    $("backtestStatus").textContent =
+      "Backtest failed: "+e.message+
+      ". This pool may not have enough hourly history.";
+  } finally {
+    busy = false;
+    render();
+  }
 }
 
 $("load").onclick = loadMarkets;
 $("refresh").onclick = refreshMarket;
 $("generate").onclick = generateSignal;
-$("start").onclick = startMonitor;
-$("stop").onclick = ()=>{
-  stopMonitor();
-  status("Auto monitor stopped.");
-  log("Auto monitor stopped.");
-};
+$("backtest").onclick = runBacktest;
 
 $("markets").onchange = ()=>{
   selected = pools.find(p=>address(p)===$("markets").value)||null;
+  $("backtestResults").hidden = true;
+  $("backtestStatus").textContent = "Select Run Backtest to test this pool.";
   render();
   generateSignal();
 };
 
 $("buy").onclick = ()=>{
   try {
-    if (!selected || !priceOf(selected)) throw Error("No valid market price.");
+    if (!selected || !priceOf(selected)) throw Error("No valid price.");
     const amount = Number($("amount").value);
     if (!Number.isFinite(amount)||amount<=0) throw Error("Enter a valid amount.");
     if (amount>cash) throw Error("Insufficient virtual cash.");
 
     const key = address(selected);
-    const pos = positionFor(key);
+    const pos = posFor(key);
     pos.qty += amount/priceOf(selected);
     pos.cost += amount;
     positions[key] = pos;
@@ -352,29 +462,28 @@ $("buy").onclick = ()=>{
 
     log("DEMO BUY "+(attrs(selected).name||key)+" | "+money(amount));
     render();
-    status("Virtual buy completed; no real transaction.");
+    status("Virtual buy completed. No real transaction.");
   } catch(e) { status(e.message); }
 };
 
 $("sell").onclick = ()=>{
   try {
-    if (!selected || !priceOf(selected)) throw Error("No valid market price.");
+    if (!selected || !priceOf(selected)) throw Error("No valid price.");
     const amount = Number($("amount").value);
     if (!Number.isFinite(amount)||amount<=0) throw Error("Enter a valid amount.");
 
     const key = address(selected);
-    const pos = positionFor(key);
+    const pos = posFor(key);
     const p = priceOf(selected);
-
     if (!pos.qty || amount>pos.qty*p)
       throw Error("Insufficient demo token balance.");
 
     const qty = amount/p;
     const costSold = pos.cost*qty/pos.qty;
     const profit = amount-costSold;
-
     pos.qty -= qty;
     pos.cost -= costSold;
+
     if (pos.qty<1e-10) {pos.qty=0;pos.cost=0;}
     positions[key] = pos;
     cash += amount;
@@ -383,7 +492,7 @@ $("sell").onclick = ()=>{
     log("DEMO SELL "+(attrs(selected).name||key)+
       " | "+money(amount)+" | P/L "+money(profit));
     render();
-    status("Virtual sell completed; no real transaction.");
+    status("Virtual sell completed. No real transaction.");
   } catch(e) { status(e.message); }
 };
 
@@ -397,13 +506,6 @@ $("reset").onclick = ()=>{
   log("Virtual account reset to $100.");
   status("Demo account reset.");
 };
-
-document.addEventListener("visibilitychange",()=>{
-  if (!document.hidden && timer) {
-    status("Monitor active. Refreshing market data...");
-    nextRefresh = Date.now()+INTERVAL_MS;
-  }
-});
 
 render();
 </script>
