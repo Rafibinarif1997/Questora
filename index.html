@@ -4,145 +4,332 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RH BOT | Paper Trading</title>
+<title>RH Bot | Live Paper Trading</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#0b1020;color:#e7edf9;font-family:Arial,sans-serif;padding:18px}
-main{max-width:600px;margin:20px auto}
+body{margin:0;padding:18px;background:#0b1020;color:#e8eef9;font-family:Arial,sans-serif}
+main{max-width:650px;margin:20px auto}
 h1{color:#75edbb}
-.card{background:#151d30;border:1px solid #293650;border-radius:14px;padding:18px;margin:14px 0}
-.muted{color:#9cacc6;font-size:13px}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.value{font-size:24px;font-weight:bold;margin-top:8px}
-input{width:100%;padding:12px;margin:8px 0 14px;background:#0b1020;color:white;border:1px solid #35425c;border-radius:8px}
-button{padding:12px;border:0;border-radius:8px;font-weight:bold;cursor:pointer}
-.buy{background:#75edbb;color:#08140f}
-.sell{background:#ff8585;color:#250b0b}
-.reset{background:#293650;color:white}
-.actions{display:flex;gap:10px}
-.actions button{flex:1}
-#message{line-height:1.6;overflow-wrap:anywhere}
+.card{padding:18px;margin:14px 0;background:#151d30;border:1px solid #293650;border-radius:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.muted{color:#9cacc6;font-size:13px;line-height:1.6}
+.value{font-size:23px;font-weight:bold;margin-top:8px;overflow-wrap:anywhere}
+button,select,input{width:100%;padding:12px;margin:7px 0;border-radius:8px;font-size:14px}
+select,input{background:#0b1020;color:white;border:1px solid #35425c}
+button{background:#75edbb;color:#08140f;font-weight:bold;border:0;cursor:pointer}
+button.sell{background:#ff8585}
+button.secondary{background:#293650;color:white}
+#status,#activity{line-height:1.7;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
 <main>
 <h1>RH BOT</h1>
-<p class="muted">ROBINHOOD CHAIN · PAPER TRADING ONLY</p>
+<p class="muted">ROBINHOOD CHAIN · LIVE DATA · PAPER TRADING ONLY</p>
 
 <div class="card">
-<div class="muted">Virtual Portfolio Value</div>
-<div class="value" id="equity">$100.00</div>
-<div class="muted">Starting cash: $100 · No real trades</div>
-</div>
-
-<div class="stats">
-<div class="card">
-<div class="muted">Available Cash</div>
-<div class="value" id="cash">$100.00</div>
-</div>
-<div class="card">
-<div class="muted">Unrealized + Realized P/L</div>
-<div class="value" id="pnl">$0.00</div>
-</div>
+<div class="muted">Network</div>
+<div class="value">Robinhood Chain</div>
+<div class="muted">Market data: GeckoTerminal</div>
+<button id="load">Load Live Markets</button>
+<div id="status">Press the button to load market data.</div>
 </div>
 
 <div class="card">
-<h3>Demo Market</h3>
-<label for="price">Token price (virtual USD)</label>
-<input id="price" type="number" min="0.000001" step="any" value="1">
-<label for="amount">Trade amount (USD)</label>
+<h3>Select Market</h3>
+<select id="markets" disabled>
+<option value="">Load markets first</option>
+</select>
+<button id="refresh" class="secondary" disabled>Refresh Selected Price</button>
+<div class="muted">Selected pair</div>
+<div id="pair" class="value">—</div>
+<div class="muted">Live base token price (USD)</div>
+<div id="price" class="value">—</div>
+<div class="muted">Pool liquidity (USD)</div>
+<div id="liquidity" class="value">—</div>
+<div class="muted">24h volume (USD)</div>
+<div id="volume" class="value">—</div>
+<div id="updated" class="muted"></div>
+</div>
+
+<div class="grid">
+<div class="card">
+<div class="muted">Demo Cash</div>
+<div id="cash" class="value">$100.00</div>
+</div>
+<div class="card">
+<div class="muted">Demo Equity</div>
+<div id="equity" class="value">$100.00</div>
+</div>
+<div class="card">
+<div class="muted">Unrealized P/L</div>
+<div id="unrealized" class="value">$0.00</div>
+</div>
+<div class="card">
+<div class="muted">Realized P/L</div>
+<div id="realized" class="value">$0.00</div>
+</div>
+</div>
+
+<div class="card">
+<h3>Paper Trading</h3>
+<div class="muted">Trade amount in USD</div>
 <input id="amount" type="number" min="0.01" step="any" value="10">
-<div class="actions">
-<button class="buy" id="buy">Demo Buy</button>
-<button class="sell" id="sell">Demo Sell</button>
-</div>
-<p class="muted">This is a simulated market. The price does not come from a live DEX.</p>
+<button id="buy">Demo Buy</button>
+<button id="sell" class="sell">Demo Sell</button>
+<div class="muted">No blockchain transactions. No real money.</div>
 </div>
 
 <div class="card">
-<h3>Position</h3>
-<div id="position">No tokens held.</div>
+<h3>Selected Token Position</h3>
+<div id="position">No position.</div>
+<button id="reset" class="secondary">Reset Demo Account</button>
 </div>
 
 <div class="card">
-<h3>Activity</h3>
-<div id="message" class="muted">Ready for your first demo trade.</div>
-<p><button class="reset" id="reset">Reset Demo</button></p>
+<h3>Activity Log</h3>
+<div id="activity" class="muted">Waiting for market data.</div>
 </div>
 </main>
 
 <script>
-let cash=100;
-let tokens=0;
-let cost=0;
-let realized=0;
-let history=[];
+const API = "https://api.geckoterminal.com/api/v2";
+const $ = id => document.getElementById(id);
 
-const $=id=>document.getElementById(id);
-const money=n=>"$"+n.toFixed(2);
+let pools = [];
+let selected = null;
+let cash = 100;
+let realized = 0;
+let positions = {};
+let logs = [];
 
-function currentPrice(){
-  const p=Number($("price").value);
-  if(!Number.isFinite(p)||p<=0) throw Error("Enter a valid positive price.");
-  return p;
-}
-function amount(){
-  const a=Number($("amount").value);
-  if(!Number.isFinite(a)||a<=0) throw Error("Enter a valid trade amount.");
-  return a;
-}
-function render(msg){
-  const p=Number($("price").value);
-  const marketValue=tokens*(Number.isFinite(p)&&p>0?p:0);
-  const pnl=realized+marketValue-cost;
-  $("cash").textContent=money(cash);
-  $("equity").textContent=money(cash+marketValue);
-  $("pnl").textContent=money(pnl);
-  $("position").textContent=tokens>0
-    ? tokens.toFixed(6)+" demo tokens · Cost basis "+money(cost)
-    : "No tokens held.";
-  $("message").textContent=msg;
+const money = n => "$" + n.toLocaleString("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 6
+});
+
+async function getJSON(url) {
+  const response = await fetch(url, {
+    headers: { "Accept": "application/json;version=20230302" }
+  });
+  if (!response.ok) throw Error("API HTTP " + response.status);
+  return response.json();
 }
 
-$("buy").onclick=()=>{
-  try{
-    const p=currentPrice(),a=amount();
-    if(a>cash) throw Error("Not enough virtual cash.");
-    const q=a/p;
-    cash-=a;
-    tokens+=q;
-    cost+=a;
-    history.push({type:"BUY",price:p,amount:a});
-    render("DEMO BUY: "+q.toFixed(6)+" tokens at "+money(p));
-  }catch(e){render(e.message)}
+function log(message) {
+  logs.unshift(new Date().toLocaleTimeString() + " — " + message);
+  logs = logs.slice(0, 8);
+  $("activity").textContent = logs.join("\n");
+  $("activity").style.whiteSpace = "pre-line";
+}
+
+function attrs(pool) {
+  return pool.attributes || {};
+}
+
+function priceOf(pool) {
+  const p = Number(attrs(pool).base_token_price_usd);
+  return Number.isFinite(p) && p > 0 ? p : 0;
+}
+
+function currentPosition() {
+  return selected ? positions[attrs(selected).address] || {
+    qty: 0, cost: 0
+  } : { qty: 0, cost: 0 };
+}
+
+function render() {
+  const p = selected ? priceOf(selected) : 0;
+  const pos = currentPosition();
+  const value = pos.qty * p;
+  const unreal = value - pos.cost;
+
+  $("cash").textContent = money(cash);
+  $("equity").textContent = money(cash + value);
+  $("unrealized").textContent = money(unreal);
+  $("realized").textContent = money(realized);
+  $("position").textContent = pos.qty > 0
+    ? pos.qty.toFixed(8) + " tokens | Cost: " + money(pos.cost)
+    : "No position in selected pool.";
+
+  $("price").textContent = p ? money(p) : "Price unavailable";
+
+  if (selected) {
+    const a = attrs(selected);
+    $("pair").textContent = a.name || a.address;
+    $("liquidity").textContent = money(Number(a.reserve_in_usd) || 0);
+    $("volume").textContent = money(Number(
+      a.volume_usd && a.volume_usd.h24
+    ) || 0);
+  }
+}
+
+async function loadMarkets() {
+  $("status").textContent = "Loading Robinhood Chain markets...";
+  $("load").disabled = true;
+
+  try {
+    const result = await getJSON(
+      API + "/networks/robinhood/pools?sort=h24_volume_usd_desc"
+    );
+
+    pools = (result.data || []).filter(pool => priceOf(pool) > 0);
+
+    if (!pools.length) {
+      throw Error("No priced pools returned by the API.");
+    }
+
+    $("markets").innerHTML = "";
+    pools.forEach((pool, index) => {
+      const a = attrs(pool);
+      const option = document.createElement("option");
+      option.value = a.address;
+      option.textContent = (a.name || a.address) +
+        " | " + money(priceOf(pool));
+      $("markets").appendChild(option);
+    });
+
+    $("markets").disabled = false;
+    $("refresh").disabled = false;
+    selected = pools[0];
+    $("markets").value = attrs(selected).address;
+    $("status").textContent = "Loaded " + pools.length +
+      " pools. Prices are supplied by GeckoTerminal.";
+    $("updated").textContent = "Fetched: " +
+      new Date().toLocaleString();
+
+    render();
+    log("Loaded market list. Demo account starts with $100.");
+  } catch (error) {
+    $("status").textContent =
+      "Could not load markets: " + error.message +
+      ". Check network/API access and try again.";
+  } finally {
+    $("load").disabled = false;
+  }
+}
+
+async function refreshPrice() {
+  if (!selected) return;
+
+  $("status").textContent = "Refreshing selected market...";
+
+  try {
+    const address = attrs(selected).address;
+    const result = await getJSON(
+      API + "/networks/robinhood/pools/" + address
+    );
+    const fresh = result.data;
+
+    if (!fresh || !priceOf(fresh)) {
+      throw Error("No valid price returned.");
+    }
+
+    selected = fresh;
+    pools = pools.map(pool =>
+      attrs(pool).address === address ? fresh : pool
+    );
+
+    const option = $("markets").selectedOptions[0];
+    if (option) {
+      option.textContent =
+        (attrs(fresh).name || address) + " | " +
+        money(priceOf(fresh));
+    }
+
+    $("status").textContent = "Price refreshed successfully.";
+    $("updated").textContent =
+      "Last fetched: " + new Date().toLocaleString();
+    render();
+  } catch (error) {
+    $("status").textContent =
+      "Refresh failed: " + error.message;
+  }
+}
+
+$("load").onclick = loadMarkets;
+$("refresh").onclick = refreshPrice;
+
+$("markets").onchange = () => {
+  const address = $("markets").value;
+  selected = pools.find(pool =>
+    attrs(pool).address === address
+  ) || null;
+  render();
 };
 
-$("sell").onclick=()=>{
-  try{
-    const p=currentPrice(),a=amount();
-    const q=a/p;
-    if(q>tokens+1e-10) throw Error("Not enough demo tokens to sell this USD value.");
-    const soldCost=cost*(q/tokens);
-    const proceeds=q*p;
-    realized+=proceeds-soldCost;
-    cash+=proceeds;
-    tokens-=q;
-    cost-=soldCost;
-    if(tokens<1e-10){tokens=0;cost=0}
-    history.push({type:"SELL",price:p,amount:proceeds});
-    render("DEMO SELL: "+q.toFixed(6)+" tokens at "+money(p)+
-      ". Realized P/L: "+money(proceeds-soldCost));
-  }catch(e){render(e.message)}
+$("buy").onclick = () => {
+  try {
+    if (!selected) throw Error("Load and select a market first.");
+    const p = priceOf(selected);
+    const amount = Number($("amount").value);
+
+    if (!p) throw Error("Valid price unavailable.");
+    if (!Number.isFinite(amount) || amount <= 0)
+      throw Error("Enter a valid USD amount.");
+    if (amount > cash) throw Error("Insufficient demo cash.");
+
+    const address = attrs(selected).address;
+    const pos = positions[address] || { qty: 0, cost: 0 };
+
+    pos.qty += amount / p;
+    pos.cost += amount;
+    positions[address] = pos;
+    cash -= amount;
+
+    log("DEMO BUY " + (attrs(selected).name || address) +
+      " | " + money(amount) + " at " + money(p));
+    render();
+  } catch (error) {
+    $("status").textContent = error.message;
+  }
 };
 
-$("reset").onclick=()=>{
-  cash=100;tokens=0;cost=0;realized=0;history=[];
-  $("price").value="1";$("amount").value="10";
-  render("Demo reset. Starting balance: $100.");
+$("sell").onclick = () => {
+  try {
+    if (!selected) throw Error("Select a market first.");
+    const p = priceOf(selected);
+    const amount = Number($("amount").value);
+    const address = attrs(selected).address;
+    const pos = currentPosition();
+
+    if (!p) throw Error("Valid price unavailable.");
+    if (!Number.isFinite(amount) || amount <= 0)
+      throw Error("Enter a valid USD amount.");
+    if (amount > pos.qty * p)
+      throw Error("Not enough demo tokens at the current price.");
+
+    const qtySold = amount / p;
+    const costSold = pos.cost * (qtySold / pos.qty);
+    const profit = amount - costSold;
+
+    pos.qty -= qtySold;
+    pos.cost -= costSold;
+    if (pos.qty < 1e-10) {
+      pos.qty = 0;
+      pos.cost = 0;
+    }
+
+    positions[address] = pos;
+    cash += amount;
+    realized += profit;
+
+    log("DEMO SELL " + (attrs(selected).name || address) +
+      " | " + money(amount) + " | P/L " + money(profit));
+    render();
+  } catch (error) {
+    $("status").textContent = error.message;
+  }
 };
 
-$("price").addEventListener("input",()=>render("Price updated for simulation."));
-render("Ready. All trades are virtual.");
+$("reset").onclick = () => {
+  cash = 100;
+  realized = 0;
+  positions = {};
+  logs = [];
+  render();
+  log("Demo account reset to $100.");
+};
 </script>
 </body>
 </html>
