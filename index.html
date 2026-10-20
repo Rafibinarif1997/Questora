@@ -4,11 +4,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RH BOT | Paper Trader & Backtest</title>
+<title>RH BOT | Backtest v2</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;padding:16px;background:#0b1020;color:#edf2ff;font-family:Arial,sans-serif}
-main{max-width:700px;margin:auto}
+main{max-width:760px;margin:auto}
 h1{color:#75edbb}
 .card{background:#151d30;border:1px solid #30405c;border-radius:14px;padding:16px;margin:14px 0}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -19,17 +19,22 @@ button{border:0;background:#75edbb;color:#08140f;font-weight:bold;cursor:pointer
 button:disabled{opacity:.5}
 .secondary{background:#34415b;color:white}
 .sell{background:#ff8585;color:#270909}
-#signal{font-size:26px;color:#75edbb}
-#status,#signalReason,#activity,#backtestStatus{overflow-wrap:anywhere;line-height:1.7}
 input,select{background:#0b1020;color:white;border:1px solid #35425c}
+#signal{font-size:26px;color:#75edbb}
+#status,#signalReason,#activity,#btStatus{overflow-wrap:anywhere;line-height:1.7}
 .good{color:#75edbb}
 .bad{color:#ff8585}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:10px 5px;border-bottom:1px solid #30405c;vertical-align:top}
+th{color:#a7b5cc}
+.note{padding:10px;background:#0b1020;border-radius:8px}
+@media(max-width:440px){body{padding:9px}.card{padding:12px}th,td{padding:8px 3px;font-size:12px}}
 </style>
 </head>
 <body>
 <main>
 <h1>RH BOT</h1>
-<p class="muted">ROBINHOOD CHAIN · LIVE DATA · PAPER TRADING</p>
+<p class="muted">ROBINHOOD CHAIN · BACKTEST V2 · PAPER TRADING</p>
 
 <div class="card">
 <h3>1. Market Connection</h3>
@@ -45,7 +50,7 @@ input,select{background:#0b1020;color:white;border:1px solid #35425c}
 <button id="refresh" class="secondary" disabled>Refresh Market</button>
 <div class="muted">Trading pair</div>
 <div id="pair" class="value">—</div>
-<div class="muted">Current price (USD)</div>
+<div class="muted">Price (USD)</div>
 <div id="price" class="value">—</div>
 <div class="grid">
 <div><div class="muted">Liquidity</div><div id="liquidity" class="value">—</div></div>
@@ -56,34 +61,41 @@ input,select{background:#0b1020;color:white;border:1px solid #35425c}
 </div>
 
 <div class="card">
-<h3>3. Trading Signal</h3>
+<h3>3. Current Market Signal</h3>
 <div id="signal">WAIT</div>
 <div id="signalReason" class="muted">Load a market first.</div>
 <button id="generate" disabled>Generate Signal</button>
 </div>
 
 <div class="card">
-<h3>4. Historical Backtest</h3>
+<h3>4. Compare Three Strategies</h3>
 <p class="muted">
-Tests a simple momentum strategy using hourly historical candles.
-It does not place real trades.
+Historical hourly candles · Virtual starting capital: $100.
+No live trades are placed.
 </p>
-<button id="backtest" disabled>Run Backtest</button>
-<div id="backtestStatus" class="muted">Select a market first.</div>
-<div id="backtestResults" hidden>
-<div class="grid">
-<div><div class="muted">Completed trades</div><div id="btTrades" class="value">—</div></div>
-<div><div class="muted">Win rate</div><div id="btWin" class="value">—</div></div>
-<div><div class="muted">Net return</div><div id="btReturn" class="value">—</div></div>
-<div><div class="muted">Max drawdown</div><div id="btDD" class="value">—</div></div>
+<button id="backtest" disabled>Run All Backtests</button>
+<div id="btStatus" class="muted">Select a market first.</div>
+
+<div id="results" hidden>
+<div class="note muted" id="period"></div>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Return</th>
+<th>Win rate</th>
+<th>Trades</th>
+<th>Max DD</th>
+</tr>
+</thead>
+<tbody id="resultRows"></tbody>
+</table>
+<div id="best" class="card">
+<div class="muted">Best historical return</div>
+<div id="bestName" class="value">—</div>
+<div id="bestDetail" class="muted"></div>
 </div>
-<div id="btDetails" class="muted"></div>
 </div>
-<p class="muted">
-Test rules: buy after a positive 24h momentum signal, hold for 24 hours,
-and exit. Assumed cost: 0.5% per side for fees and slippage.
-Historical results do not predict future performance.
-</p>
 </div>
 
 <div class="grid">
@@ -95,7 +107,7 @@ Historical results do not predict future performance.
 
 <div class="card">
 <h3>5. Demo Trading</h3>
-<label class="muted" for="amount">Trade amount (USD)</label>
+<label for="amount" class="muted">Trade amount (USD)</label>
 <input id="amount" type="number" min="0.01" step="any" value="10">
 <button id="buy" disabled>Demo Buy</button>
 <button id="sell" class="sell" disabled>Demo Sell</button>
@@ -105,10 +117,13 @@ Historical results do not predict future performance.
 
 <div class="card">
 <h3>Activity Log</h3>
-<div id="activity" class="muted">No trades yet.</div>
+<div id="activity" class="muted">No activity yet.</div>
 </div>
 
-<p class="muted">Educational demo only. No wallet, private key, or real transactions.</p>
+<p class="muted">
+Educational simulation only. Backtest results are historical and do not predict future performance.
+Estimated trading costs are assumptions, not actual fees.
+</p>
 </main>
 
 <script>
@@ -116,6 +131,9 @@ Historical results do not predict future performance.
 
 const API = "https://api.geckoterminal.com/api/v2";
 const $ = id => document.getElementById(id);
+const STARTING_CASH = 100;
+const FEE_SIDE = 0.005;
+
 const money = n => "$" + Number(n).toLocaleString("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 6
@@ -123,7 +141,7 @@ const money = n => "$" + Number(n).toLocaleString("en-US", {
 
 let pools = [];
 let selected = null;
-let cash = 100;
+let cash = STARTING_CASH;
 let realized = 0;
 let positions = {};
 let logs = [];
@@ -137,8 +155,8 @@ function address(pool) {
   return attrs(pool).address || "";
 }
 function priceOf(pool) {
-  const p = Number(attrs(pool).base_token_price_usd);
-  return Number.isFinite(p) && p > 0 ? p : 0;
+  const n = Number(attrs(pool).base_token_price_usd);
+  return Number.isFinite(n) && n > 0 ? n : 0;
 }
 function posFor(key) {
   return positions[key] || {qty:0,cost:0};
@@ -151,16 +169,16 @@ function status(message) {
 }
 function log(message) {
   logs.unshift(new Date().toLocaleTimeString()+" — "+message);
-  logs = logs.slice(0,10);
+  logs = logs.slice(10);
   $("activity").textContent = logs.join("\n");
   $("activity").style.whiteSpace = "pre-line";
 }
 async function request(url) {
-  const r = await fetch(url, {
+  const response = await fetch(url, {
     headers: {"Accept":"application/json;version=20230203"}
   });
-  if (!r.ok) throw Error("API HTTP "+r.status);
-  return r.json();
+  if (!response.ok) throw Error("API HTTP "+response.status);
+  return response.json();
 }
 
 function render() {
@@ -180,13 +198,14 @@ function render() {
   $("equity").textContent = money(cash+value);
   $("unrealized").textContent = money(value-pos.cost);
   $("realized").textContent = money(realized);
+
   $("position").textContent = pos.qty>0
     ? pos.qty.toFixed(8)+" tokens | Cost: "+money(pos.cost)+
       " | Value: "+money(value)
     : "No position in selected market.";
 
   const enabled = !!selected && p>0;
-  $("refresh").disabled = !selected || busy;
+  $("refresh").disabled = !enabled || busy;
   $("generate").disabled = !enabled;
   $("buy").disabled = !enabled;
   $("sell").disabled = !enabled;
@@ -194,11 +213,7 @@ function render() {
 }
 
 function generateSignal() {
-  if (!selected) {
-    $("signal").textContent = "WAIT";
-    $("signalReason").textContent = "Load a market first.";
-    return;
-  }
+  if (!selected) return;
 
   const a = attrs(selected);
   const p = priceOf(selected);
@@ -207,31 +222,32 @@ function generateSignal() {
   const ch = Number(a.price_change_percentage?.h24||0);
 
   let signal = "WAIT";
-  let reason = "Conditions do not meet the strategy thresholds.";
+  let reason = "Conditions do not meet basic thresholds.";
 
   if (!p) {
     reason = "Price unavailable.";
   } else if (vol>=1000 && liq>=5000 && ch>=5) {
     signal = "BUY WATCH";
-    reason = "Positive 24h change and sufficient volume/liquidity.";
+    reason = "Positive 24h change with sufficient volume/liquidity.";
   } else if (vol>=1000 && liq>=5000 && ch<=-5) {
     signal = "SELL WATCH";
-    reason = "Negative 24h change and sufficient volume/liquidity.";
+    reason = "Negative 24h change with sufficient volume/liquidity.";
   }
 
   $("signal").textContent = signal;
-  $("signalReason").textContent = reason+
-    " | Change: "+ch.toFixed(2)+"% | Volume: "+money(vol)+
-    " | Liquidity: "+money(liq);
+  $("signalReason").textContent =
+    reason+" | Change: "+ch.toFixed(2)+"% | Volume: "+money(vol);
 }
 
 async function loadMarkets() {
   $("load").disabled = true;
   status("Loading markets...");
+
   try {
     const result = await request(
       API+"/networks/robinhood/pools?sort=h24_volume_usd_desc"
     );
+
     pools = (result.data||[]).filter(p=>priceOf(p)>0);
     if (!pools.length) throw Error("No priced pools returned.");
 
@@ -249,10 +265,12 @@ async function loadMarkets() {
     $("markets").value = address(selected);
     lastFetch = Date.now();
     $("updated").textContent = new Date().toLocaleTimeString();
+
     render();
     generateSignal();
-    log("Market list loaded. Virtual balance: $100.");
     status("Markets loaded successfully.");
+    $("btStatus").textContent = "Ready to run three strategies.";
+    log("Markets loaded. Virtual balance: $100.");
   } catch(e) {
     status("Load failed: "+e.message);
   } finally {
@@ -267,8 +285,10 @@ async function refreshMarket() {
     status("Please wait a few seconds before refreshing.");
     return;
   }
+
   busy = true;
   render();
+
   try {
     const key = address(selected);
     const result = await request(
@@ -279,9 +299,12 @@ async function refreshMarket() {
 
     selected = result.data;
     pools = pools.map(p=>address(p)===key?selected:p);
+
     const option = [...$("markets").options].find(o=>o.value===key);
-    if (option) option.textContent =
-      (attrs(selected).name||key)+" | "+money(priceOf(selected));
+    if (option) {
+      option.textContent =
+        (attrs(selected).name||key)+" | "+money(priceOf(selected));
+    }
 
     lastFetch = Date.now();
     $("updated").textContent = new Date().toLocaleTimeString();
@@ -296,29 +319,222 @@ async function refreshMarket() {
   }
 }
 
-/* Historical backtest */
+/* Moving average helper */
+function sma(candles, end, length) {
+  if (end-length+1<0) return null;
+  let sum = 0;
+  for (let j=end-length+1;j<=end;j++) {
+    sum += candles[j].close;
+  }
+  return sum/length;
+}
+
+/* Evaluate a strategy using only completed candles.
+   Decisions at a candle close execute at the next candle open. */
+function simulate(candles, strategy) {
+  let cashBalance = STARTING_CASH;
+  let qty = 0;
+  let entryCost = 0;
+  let entryIndex = -1;
+  let trades = [];
+  let curve = [STARTING_CASH];
+
+  for (let i=1;i<candles.length;i++) {
+    const previous = candles[i-1];
+    const current = candles[i];
+
+    let desiredLong = false;
+
+    if (strategy==="momentum") {
+      if (i-1>=24) {
+        const old = candles[i-25].close;
+        const momentum = old>0 ? (previous.close/old-1)*100 : 0;
+        desiredLong = momentum>=5;
+      }
+    } else if (strategy==="ma") {
+      const shortMA = sma(candles,i-1,6);
+      const longMA = sma(candles,i-1,24);
+      desiredLong = shortMA!==null &&
+                    longMA!==null &&
+                    shortMA>longMA;
+    }
+
+    const executionPrice = current.open;
+
+    if (desiredLong && qty===0 && cashBalance>0 &&
+        executionPrice>0) {
+      entryCost = cashBalance;
+      qty = (cashBalance*(1-FEE_SIDE))/executionPrice;
+      cashBalance = 0;
+      entryIndex = i;
+    } else if (!desiredLong && qty>0 && executionPrice>0) {
+      const proceeds = qty*executionPrice*(1-FEE_SIDE);
+      const returnPct = (proceeds/entryCost-1)*100;
+
+      trades.push({
+        entryIndex,
+        exitIndex:i,
+        returnPct
+      });
+
+      cashBalance = proceeds;
+      qty = 0;
+      entryCost = 0;
+      entryIndex = -1;
+    }
+
+    const mark = qty>0
+      ? qty*current.close*(1-FEE_SIDE)
+      : cashBalance;
+
+    curve.push(mark);
+  }
+
+  // Close any remaining position at the last available close.
+  const last = candles[candles.length-1];
+  if (qty>0 && last.close>0) {
+    const proceeds = qty*last.close*(1-FEE_SIDE);
+    trades.push({
+      entryIndex,
+      exitIndex:candles.length-1,
+      returnPct:(proceeds/entryCost-1)*100
+    });
+    cashBalance = proceeds;
+    qty = 0;
+  }
+
+  curve[curve.length-1] = cashBalance;
+
+  return metrics(cashBalance,trades,curve);
+}
+
+function metrics(finalEquity,trades,curve) {
+  const wins = trades.filter(t=>t.returnPct>0).length;
+  let peak = curve[0]||STARTING_CASH;
+  let maxDD = 0;
+
+  for (const equity of curve) {
+    peak = Math.max(peak,equity);
+    if (peak>0) maxDD = Math.max(maxDD,(peak-equity)/peak);
+  }
+
+  return {
+    finalEquity,
+    returnPct:(finalEquity/STARTING_CASH-1)*100,
+    trades:trades.length,
+    wins,
+    winRate:trades.length ? wins/trades.length*100 : null,
+    maxDD:maxDD*100
+  };
+}
+
+function buyAndHold(candles) {
+  const first = candles[0].open;
+  const last = candles[candles.length-1].close;
+
+  if (!(first>0 && last>0)) throw Error("Invalid prices.");
+
+  const qty = STARTING_CASH*(1-FEE_SIDE)/first;
+  const finalEquity = qty*last*(1-FEE_SIDE);
+  const returnPct = (finalEquity/STARTING_CASH-1)*100;
+
+  const curve = candles.map(c =>
+    qty*c.close*(1-FEE_SIDE)
+  );
+  curve[0] = STARTING_CASH;
+
+  let peak = STARTING_CASH;
+  let maxDD = 0;
+  for (const equity of curve) {
+    peak = Math.max(peak,equity);
+    maxDD = Math.max(maxDD,(peak-equity)/peak);
+  }
+
+  return {
+    finalEquity,
+    returnPct,
+    trades:1,
+    wins:returnPct>0?1:0,
+    winRate:returnPct>0?100:0,
+    maxDD:maxDD*100
+  };
+}
+
+function renderResults(results,candles) {
+  const rows = $("resultRows");
+  rows.replaceChildren();
+
+  const entries = [
+    ["Momentum",results.momentum],
+    ["Moving Average (6/24)",results.ma],
+    ["Buy & Hold",results.hold]
+  ];
+
+  entries.forEach(([name,r])=>{
+    const tr = document.createElement("tr");
+
+    const values = [
+      name,
+      (r.returnPct>=0?"+":"")+r.returnPct.toFixed(2)+"%",
+      r.winRate===null?"N/A":r.winRate.toFixed(1)+"%",
+      String(r.trades),
+      r.maxDD.toFixed(2)+"%"
+    ];
+
+    values.forEach((value,index)=>{
+      const td = document.createElement("td");
+      td.textContent = value;
+      if (index===1) td.className = r.returnPct>=0?"good":"bad";
+      tr.appendChild(td);
+    });
+
+    rows.appendChild(tr);
+  });
+
+  const firstTime = new Date(candles[0].time*1000).toLocaleString();
+  const lastTime = new Date(candles[candles.length-1].time*1000)
+    .toLocaleString();
+
+  $("period").textContent =
+    "Candles: "+candles.length+
+    " | Interval: 1 hour | Period: "+firstTime+" – "+lastTime+
+    " | Start: $100 | Assumed cost: 0.5% per side";
+
+  const best = entries.reduce((a,b)=>
+    b[1].returnPct>a[1].returnPct?b:a
+  );
+
+  $("bestName").textContent = best[0];
+  $("bestDetail").textContent =
+    "Ending equity: "+money(best[1].finalEquity)+
+    " | Return: "+(best[1].returnPct>=0?"+":"")+
+    best[1].returnPct.toFixed(2)+"%"+
+    " | Max drawdown: "+best[1].maxDD.toFixed(2)+"%";
+
+  $("results").hidden = false;
+}
+
 async function runBacktest() {
   if (!selected || busy) return;
 
   busy = true;
-  $("backtestResults").hidden = true;
-  $("backtestStatus").textContent = "Downloading historical hourly candles...";
+  $("results").hidden = true;
+  $("btStatus").textContent = "Downloading hourly history...";
   render();
 
   try {
     const key = address(selected);
     const url = API+"/networks/robinhood/pools/"+
       encodeURIComponent(key)+
-      "/ohlcv/hour?aggregate=1&limit=100&currency=usd";
+      "/ohlcv/hour?aggregate=1&limit=500&currency=usd";
 
     const result = await request(url);
     const list = result.data?.attributes?.ohlcv_list;
 
-    if (!Array.isArray(list) || list.length<50) {
-      throw Error("Not enough historical candles for a useful test.");
+    if (!Array.isArray(list)) {
+      throw Error("Historical candle data is unavailable for this pool.");
     }
 
-    // API candles are newest-first; reverse to chronological order.
     const candles = list.map(c=>({
       time:Number(c[0]),
       open:Number(c[1]),
@@ -326,107 +542,37 @@ async function runBacktest() {
       low:Number(c[3]),
       close:Number(c[4]),
       volume:Number(c[5])
-    })).filter(c=>
+    }))
+    .filter(c=>
       c.time>0 && c.open>0 && c.close>0 &&
-      Number.isFinite(c.volume)
-    ).sort((a,b)=>a.time-b.time);
+      Number.isFinite(c.open) && Number.isFinite(c.close)
+    )
+    .sort((a,b)=>a.time-b.time);
 
-    if (candles.length<50)
-      throw Error("Not enough valid historical candles.");
-
-    const feeSide = 0.005;
-    const holdHours = 24;
-    const trades = [];
-    let i = 25;
-
-    while (i+holdHours<candles.length) {
-      // Use only completed candles before the entry candle.
-      const previousClose = candles[i-1].close;
-      const oldClose = candles[i-25].close;
-      const change = (previousClose/oldClose-1)*100;
-
-      let volume24h = 0;
-      for (let j=i-24;j<i;j++) {
-        volume24h += candles[j].volume;
-      }
-
-      // A simple positive-momentum entry rule.
-      // No historical liquidity is available in this OHLCV response.
-      if (change>=5 && volume24h>=1000) {
-        const entry = candles[i].open;
-        const exit = candles[i+holdHours].close;
-
-        if (entry>0 && exit>0) {
-          const netReturn =
-            (exit*(1-feeSide))/(entry*(1+feeSide))-1;
-
-          trades.push({
-            entryTime:candles[i].time,
-            exitTime:candles[i+holdHours].time,
-            change,
-            netReturn
-          });
-        }
-
-        // Avoid overlapping positions.
-        i += holdHours;
-      } else {
-        i++;
-      }
+    if (candles.length<50) {
+      throw Error(
+        "Only "+candles.length+
+        " valid hourly candles found. Select a pool with more history."
+      );
     }
 
-    if (!trades.length) {
-      $("backtestStatus").textContent =
-        "No trades matched this rule in the available history. " +
-        "This is a result, not an error.";
-      $("backtestResults").hidden = true;
-      return;
-    }
+    $("btStatus").textContent =
+      "Testing Momentum, Moving Average and Buy & Hold...";
 
-    let equity = 100;
-    let peak = 100;
-    let maxDD = 0;
-    let wins = 0;
+    const results = {
+      momentum:simulate(candles,"momentum"),
+      ma:simulate(candles,"ma"),
+      hold:buyAndHold(candles)
+    };
 
-    trades.forEach(t=>{
-      equity *= (1+t.netReturn);
-      peak = Math.max(peak,equity);
-      maxDD = Math.max(maxDD,(peak-equity)/peak);
-      if (t.netReturn>0) wins++;
-    });
-
-    const netReturn = (equity/100-1)*100;
-    const winRate = wins/trades.length*100;
-
-    $("btTrades").textContent = String(trades.length);
-    $("btWin").textContent = winRate.toFixed(1)+"%";
-    $("btReturn").textContent =
-      (netReturn>=0?"+":"")+netReturn.toFixed(2)+"%";
-    $("btReturn").className = "value "+(netReturn>=0?"good":"bad");
-    $("btDD").textContent = (maxDD*100).toFixed(2)+"%";
-
-    const first = new Date(trades[0].entryTime*1000).toLocaleDateString();
-    const last = new Date(trades[trades.length-1].exitTime*1000)
-      .toLocaleDateString();
-
-    $("btDetails").textContent =
-      "Pair: "+(attrs(selected).name||key)+
-      " | Candles: "+candles.length+
-      " | Period tested: "+first+" to "+last+
-      " | Starting test equity: $100"+
-      " | Ending test equity: "+money(equity)+
-      ". Fees/slippage assumption: 0.5% per side.";
-
-    $("backtestResults").hidden = false;
-    $("backtestStatus").textContent =
-      "Backtest completed. Results are historical simulation only.";
-    log("Backtest completed for "+(attrs(selected).name||key)+
-      ": "+trades.length+" trades, return "+netReturn.toFixed(2)+"%.");
+    renderResults(results,candles);
+    $("btStatus").textContent =
+      "All three strategies tested successfully.";
+    log("Backtest complete for "+(attrs(selected).name||key)+
+      ". Historical data only.");
 
   } catch(e) {
-    $("backtestStatus").textContent =
-      "Backtest failed: "+e.message+
-      ". This pool may not have enough hourly history.";
+    $("btStatus").textContent = "Backtest failed: "+e.message;
   } finally {
     busy = false;
     render();
@@ -440,8 +586,8 @@ $("backtest").onclick = runBacktest;
 
 $("markets").onchange = ()=>{
   selected = pools.find(p=>address(p)===$("markets").value)||null;
-  $("backtestResults").hidden = true;
-  $("backtestStatus").textContent = "Select Run Backtest to test this pool.";
+  $("results").hidden = true;
+  $("btStatus").textContent = "Press Run All Backtests.";
   render();
   generateSignal();
 };
@@ -450,7 +596,8 @@ $("buy").onclick = ()=>{
   try {
     if (!selected || !priceOf(selected)) throw Error("No valid price.");
     const amount = Number($("amount").value);
-    if (!Number.isFinite(amount)||amount<=0) throw Error("Enter a valid amount.");
+    if (!Number.isFinite(amount)||amount<=0)
+      throw Error("Enter a valid amount.");
     if (amount>cash) throw Error("Insufficient virtual cash.");
 
     const key = address(selected);
@@ -462,28 +609,32 @@ $("buy").onclick = ()=>{
 
     log("DEMO BUY "+(attrs(selected).name||key)+" | "+money(amount));
     render();
-    status("Virtual buy completed. No real transaction.");
-  } catch(e) { status(e.message); }
+    status("Virtual buy completed; no real transaction.");
+  } catch(e) {
+    status(e.message);
+  }
 };
 
 $("sell").onclick = ()=>{
   try {
     if (!selected || !priceOf(selected)) throw Error("No valid price.");
     const amount = Number($("amount").value);
-    if (!Number.isFinite(amount)||amount<=0) throw Error("Enter a valid amount.");
+    if (!Number.isFinite(amount)||amount<=0)
+      throw Error("Enter a valid amount.");
 
     const key = address(selected);
     const pos = posFor(key);
     const p = priceOf(selected);
+
     if (!pos.qty || amount>pos.qty*p)
       throw Error("Insufficient demo token balance.");
 
     const qty = amount/p;
     const costSold = pos.cost*qty/pos.qty;
     const profit = amount-costSold;
+
     pos.qty -= qty;
     pos.cost -= costSold;
-
     if (pos.qty<1e-10) {pos.qty=0;pos.cost=0;}
     positions[key] = pos;
     cash += amount;
@@ -492,8 +643,10 @@ $("sell").onclick = ()=>{
     log("DEMO SELL "+(attrs(selected).name||key)+
       " | "+money(amount)+" | P/L "+money(profit));
     render();
-    status("Virtual sell completed. No real transaction.");
-  } catch(e) { status(e.message); }
+    status("Virtual sell completed; no real transaction.");
+  } catch(e) {
+    status(e.message);
+  }
 };
 
 $("reset").onclick = ()=>{
@@ -503,7 +656,7 @@ $("reset").onclick = ()=>{
   positions={};
   logs=[];
   render();
-  log("Virtual account reset to $100.");
+  log("Demo account reset to $100.");
   status("Demo account reset.");
 };
 
