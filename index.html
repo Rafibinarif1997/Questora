@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RH BOT — Demo Trader</title>
+<title>RH BOT | Auto Signal Monitor</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;padding:16px;background:#0b1020;color:#edf2ff;font-family:Arial,sans-serif}
@@ -27,21 +27,29 @@ input,select{background:#0b1020;color:white;border:1px solid #35425c}
 <body>
 <main>
 <h1>RH BOT</h1>
-<p class="muted">ROBINHOOD CHAIN · LIVE DATA · PAPER TRADING</p>
+<p class="muted">ROBINHOOD CHAIN · AUTO MONITOR · PAPER TRADING</p>
 
 <div class="card">
 <h3>1. Market Connection</h3>
 <button id="load">Load Live Markets</button>
-<div id="status" class="muted">Ready. Load markets to begin.</div>
+<div id="status" class="muted">Ready.</div>
+<div class="muted">Monitor status</div>
+<div id="monitor" class="value">STOPPED</div>
+<div class="muted">Next refresh</div>
+<div id="countdown" class="muted">—</div>
+<div class="grid">
+<button id="start" disabled>Start Auto Monitor</button>
+<button id="stop" class="secondary" disabled>Stop Monitor</button>
+</div>
 </div>
 
 <div class="card">
-<h3>2. Select Trading Pair</h3>
+<h3>2. Market</h3>
 <select id="markets" disabled>
 <option value="">Load markets first</option>
 </select>
-<button id="refresh" class="secondary" disabled>Refresh Market</button>
-<div class="muted">Pair</div>
+<button id="refresh" class="secondary" disabled>Refresh Now</button>
+<div class="muted">Trading pair</div>
 <div id="pair" class="value">—</div>
 <div class="muted">Price (USD)</div>
 <div id="price" class="value">—</div>
@@ -49,15 +57,16 @@ input,select{background:#0b1020;color:white;border:1px solid #35425c}
 <div><div class="muted">Liquidity</div><div id="liquidity" class="value">—</div></div>
 <div><div class="muted">24h Volume</div><div id="volume" class="value">—</div></div>
 <div><div class="muted">24h Change</div><div id="change" class="value">—</div></div>
-<div><div class="muted">Updated</div><div id="updated" class="muted">—</div></div>
+<div><div class="muted">Last fetched</div><div id="updated" class="muted">—</div></div>
 </div>
 </div>
 
 <div class="card">
-<h3>3. Trading Signal</h3>
+<h3>3. Auto Signal</h3>
 <div id="signal">WAIT</div>
-<div id="signalReason" class="muted">Load a market, then generate a signal.</div>
-<button id="generate" disabled>Generate Signal</button>
+<div id="signalReason" class="muted">Load a market first.</div>
+<button id="generate" disabled>Generate Signal Now</button>
+<p class="muted">Signals use simple 24-hour market rules. They are not guaranteed predictions.</p>
 </div>
 
 <div class="grid">
@@ -69,7 +78,7 @@ input,select{background:#0b1020;color:white;border:1px solid #35425c}
 
 <div class="card">
 <h3>4. Demo Trading</h3>
-<label class="muted" for="amount">Trade amount in USD</label>
+<label class="muted" for="amount">Trade amount (USD)</label>
 <input id="amount" type="number" min="0.01" step="any" value="10">
 <button id="buy" disabled>Demo Buy</button>
 <button id="sell" class="sell" disabled>Demo Sell</button>
@@ -79,10 +88,9 @@ input,select{background:#0b1020;color:white;border:1px solid #35425c}
 
 <div class="card">
 <h3>Activity Log</h3>
-<div id="activity" class="muted">No trades yet.</div>
+<div id="activity" class="muted">No activity yet.</div>
 </div>
-
-<p class="muted">Educational simulation only. Signals are rule-based, not guaranteed predictions. No wallet or real transactions are used.</p>
+<p class="muted">Simulation only. No wallet, private key, or real transactions.</p>
 </main>
 
 <script>
@@ -91,10 +99,10 @@ input,select{background:#0b1020;color:white;border:1px solid #35425c}
 const API = "https://api.geckoterminal.com/api/v2";
 const $ = id => document.getElementById(id);
 const money = n => "$" + Number(n).toLocaleString("en-US", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 6
+  minimumFractionDigits:2, maximumFractionDigits:6
 });
 
+const INTERVAL_MS = 60000;
 let pools = [];
 let selected = null;
 let cash = 100;
@@ -102,9 +110,13 @@ let realized = 0;
 let positions = {};
 let logs = [];
 let lastFetch = 0;
+let nextRefresh = 0;
+let timer = null;
+let countdownTimer = null;
+let busy = false;
 
 function attrs(pool) {
-  return pool && pool.attributes ? pool.attributes : {};
+  return pool?.attributes || {};
 }
 function address(pool) {
   return attrs(pool).address || "";
@@ -117,7 +129,8 @@ function positionFor(key) {
   return positions[key] || {qty:0,cost:0};
 }
 function currentPosition() {
-  return selected ? positionFor(address(selected)) : {qty:0,cost:0};
+  return selected ? positionFor(address(selected)) :
+    {qty:0,cost:0};
 }
 function status(message) {
   $("status").textContent = message;
@@ -130,11 +143,12 @@ function log(message) {
 }
 async function request(url) {
   const response = await fetch(url, {
-    headers: {"Accept":"application/json;version=20230302"}
+    headers:{"Accept":"application/json;version=20230302"}
   });
   if (!response.ok) throw Error("API HTTP "+response.status);
   return response.json();
 }
+
 function render() {
   const p = priceOf(selected);
   const a = attrs(selected);
@@ -145,7 +159,7 @@ function render() {
   $("equity").textContent = money(cash+value);
   $("unrealized").textContent = money(value-pos.cost);
   $("realized").textContent = money(realized);
-  $("position").textContent = pos.qty > 0
+  $("position").textContent = pos.qty>0
     ? pos.qty.toFixed(8)+" tokens | Cost: "+money(pos.cost)+
       " | Value: "+money(value)
     : "No position in selected market.";
@@ -158,14 +172,17 @@ function render() {
     Number(a.price_change_percentage?.h24||0).toFixed(2)+"%";
 
   const enabled = !!selected && p>0;
+  $("refresh").disabled = !selected || busy;
   $("generate").disabled = !enabled;
   $("buy").disabled = !enabled;
   $("sell").disabled = !enabled;
-  $("refresh").disabled = !selected;
+  $("start").disabled = !enabled || !!timer;
+  $("stop").disabled = !timer;
 }
+
 function generateSignal() {
   try {
-    if (!selected) throw Error("Load and select a market first.");
+    if (!selected) throw Error("Load a market first.");
 
     const a = attrs(selected);
     const p = priceOf(selected);
@@ -174,38 +191,36 @@ function generateSignal() {
     const ch = Number(a.price_change_percentage?.h24||0);
 
     let signal = "WAIT";
-    let reason = "The market does not meet the basic signal rules.";
+    let reason = "Conditions do not meet signal thresholds.";
 
-    if (p<=0) {
+    if (!p) {
       reason = "Price unavailable. Refresh market data.";
     } else if (vol>=1000 && liq>=5000 && ch>=5) {
       signal = "BUY WATCH";
-      reason = "Positive 24h change and minimum volume/liquidity met.";
+      reason = "Positive 24h change with volume and liquidity thresholds met.";
     } else if (vol>=1000 && liq>=5000 && ch<=-5) {
       signal = "SELL WATCH";
-      reason = "Negative 24h change and minimum volume/liquidity met.";
+      reason = "Negative 24h change with volume and liquidity thresholds met.";
     }
 
     $("signal").textContent = signal;
     $("signalReason").textContent =
-      reason+" | Change: "+ch.toFixed(2)+"% | Volume: "+
-      money(vol)+" | Liquidity: "+money(liq);
-
-    status("Signal generated successfully.");
-  } catch (e) {
+      reason+" | 24h change: "+ch.toFixed(2)+
+      "% | Volume: "+money(vol)+" | Liquidity: "+money(liq);
+  } catch(e) {
     $("signal").textContent = "ERROR";
     $("signalReason").textContent = e.message;
-    status("Signal error: "+e.message);
   }
 }
+
 async function loadMarkets() {
   $("load").disabled = true;
-  status("Loading market data...");
+  status("Loading markets...");
   try {
     const result = await request(
       API+"/networks/robinhood/pools?sort=h24_volume_usd_desc"
     );
-    pools = (result.data||[]).filter(pool=>priceOf(pool)>0);
+    pools = (result.data||[]).filter(p=>priceOf(p)>0);
     if (!pools.length) throw Error("No priced pools returned.");
 
     $("markets").replaceChildren();
@@ -224,21 +239,26 @@ async function loadMarkets() {
     $("updated").textContent = new Date().toLocaleTimeString();
     render();
     generateSignal();
-    log("Markets loaded. Starting virtual balance: $100.");
-    status("Loaded "+pools.length+" markets successfully.");
+    log("Market list loaded. Virtual cash: $100.");
+    status("Markets loaded successfully.");
   } catch(e) {
     status("Load failed: "+e.message);
   } finally {
     $("load").disabled = false;
+    render();
   }
 }
+
 async function refreshMarket() {
-  if (!selected) return;
+  if (!selected || busy) return;
   if (Date.now()-lastFetch<6000) {
-    status("Wait a few seconds before refreshing.");
+    status("Please wait a few seconds before refreshing.");
     return;
   }
-  $("refresh").disabled = true;
+
+  busy = true;
+  render();
+  status("Fetching latest market data...");
   try {
     const key = address(selected);
     const result = await request(
@@ -257,27 +277,71 @@ async function refreshMarket() {
     $("updated").textContent = new Date().toLocaleTimeString();
     render();
     generateSignal();
-    status("Market refreshed successfully.");
+    status("Market refreshed; signal updated.");
+    log("Market data refreshed.");
   } catch(e) {
     status("Refresh failed: "+e.message);
   } finally {
-    $("refresh").disabled = false;
+    busy = false;
+    render();
   }
 }
+
+function stopMonitor() {
+  if (timer) clearInterval(timer);
+  if (countdownTimer) clearInterval(countdownTimer);
+  timer = null;
+  countdownTimer = null;
+  $("monitor").textContent = "STOPPED";
+  $("countdown").textContent = "—";
+  render();
+}
+
+function startMonitor() {
+  if (!selected || timer) return;
+
+  $("monitor").textContent = "RUNNING";
+  nextRefresh = Date.now()+INTERVAL_MS;
+
+  timer = setInterval(async ()=>{
+    if (document.hidden || busy) return;
+    await refreshMarket();
+    nextRefresh = Date.now()+INTERVAL_MS;
+  }, INTERVAL_MS);
+
+  countdownTimer = setInterval(()=>{
+    const seconds = Math.max(0,Math.ceil((nextRefresh-Date.now())/1000));
+    $("countdown").textContent = seconds+" seconds";
+  },1000);
+
+  $("countdown").textContent = "60 seconds";
+  status("Auto monitor started. Refresh interval: 60 seconds.");
+  log("Auto monitor started.");
+  render();
+}
+
 $("load").onclick = loadMarkets;
 $("refresh").onclick = refreshMarket;
 $("generate").onclick = generateSignal;
+$("start").onclick = startMonitor;
+$("stop").onclick = ()=>{
+  stopMonitor();
+  status("Auto monitor stopped.");
+  log("Auto monitor stopped.");
+};
+
 $("markets").onchange = ()=>{
   selected = pools.find(p=>address(p)===$("markets").value)||null;
   render();
   generateSignal();
 };
+
 $("buy").onclick = ()=>{
   try {
     if (!selected || !priceOf(selected)) throw Error("No valid market price.");
     const amount = Number($("amount").value);
     if (!Number.isFinite(amount)||amount<=0) throw Error("Enter a valid amount.");
-    if (amount>cash) throw Error("Not enough virtual cash.");
+    if (amount>cash) throw Error("Insufficient virtual cash.");
 
     const key = address(selected);
     const pos = positionFor(key);
@@ -285,11 +349,13 @@ $("buy").onclick = ()=>{
     pos.cost += amount;
     positions[key] = pos;
     cash -= amount;
+
     log("DEMO BUY "+(attrs(selected).name||key)+" | "+money(amount));
     render();
-    status("Virtual buy completed. No real transaction.");
+    status("Virtual buy completed; no real transaction.");
   } catch(e) { status(e.message); }
 };
+
 $("sell").onclick = ()=>{
   try {
     if (!selected || !priceOf(selected)) throw Error("No valid market price.");
@@ -299,31 +365,45 @@ $("sell").onclick = ()=>{
     const key = address(selected);
     const pos = positionFor(key);
     const p = priceOf(selected);
+
     if (!pos.qty || amount>pos.qty*p)
       throw Error("Insufficient demo token balance.");
 
     const qty = amount/p;
     const costSold = pos.cost*qty/pos.qty;
     const profit = amount-costSold;
+
     pos.qty -= qty;
     pos.cost -= costSold;
     if (pos.qty<1e-10) {pos.qty=0;pos.cost=0;}
     positions[key] = pos;
     cash += amount;
     realized += profit;
+
     log("DEMO SELL "+(attrs(selected).name||key)+
       " | "+money(amount)+" | P/L "+money(profit));
     render();
-    status("Virtual sell completed. No real transaction.");
+    status("Virtual sell completed; no real transaction.");
   } catch(e) { status(e.message); }
 };
+
 $("reset").onclick = ()=>{
   if (!confirm("Reset virtual account to $100?")) return;
-  cash=100;realized=0;positions={};logs=[];
+  cash=100;
+  realized=0;
+  positions={};
+  logs=[];
   render();
-  log("Account reset to $100.");
+  log("Virtual account reset to $100.");
   status("Demo account reset.");
 };
+
+document.addEventListener("visibilitychange",()=>{
+  if (!document.hidden && timer) {
+    status("Monitor active. Refreshing market data...");
+    nextRefresh = Date.now()+INTERVAL_MS;
+  }
+});
 
 render();
 </script>
