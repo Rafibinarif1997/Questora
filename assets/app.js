@@ -91,7 +91,25 @@ async function loadNativeBalance(el){
    el.textContent=n.toLocaleString(undefined,{maximumFractionDigits:6})+' ETH';
  }catch(_){el.textContent='Balance unavailable'}
 }
-const menu=$('#menuBtn');if(menu)menu.onclick=()=>$('#sidebar').classList.toggle('open');
+const menu=$('#menuBtn');
+const drawer=$('#sidebar');
+function closeDrawer(){if(drawer)drawer.classList.remove('open');const ov=$('#drawerOverlay');if(ov)ov.remove();if(menu)menu.setAttribute('aria-expanded','false')}
+function openDrawer(){
+ if(!drawer)return;
+ drawer.classList.add('open');
+ if(menu)menu.setAttribute('aria-expanded','true');
+ let ov=$('#drawerOverlay');
+ if(!ov){ov=document.createElement('button');ov.id='drawerOverlay';ov.type='button';ov.setAttribute('aria-label','Close menu');ov.style.cssText='position:fixed;inset:65px 0 0 0;background:rgba(0,0,0,.62);border:0;z-index:29;cursor:pointer';document.body.appendChild(ov);ov.addEventListener('click',closeDrawer)}
+ // Keep drawer above its overlay.
+ drawer.style.zIndex='30';
+}
+if(menu&&drawer){
+ menu.setAttribute('aria-controls','sidebar');
+ menu.setAttribute('aria-expanded','false');
+ menu.onclick=()=>drawer.classList.contains('open')?closeDrawer():openDrawer();
+ drawer.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeDrawer));
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
+}
 const search=$('#tokenSearch'),sort=$('#sortTokens');function filter(){let q=(search?.value||'').toLowerCase();let cards=[...document.querySelectorAll('#tokenGrid .token-card')];cards.forEach(c=>c.style.display=c.dataset.token.includes(q)?'':'none');if(sort){let mode=sort.value;let order=mode==='volume'?[3,0,6,4,1,2,5,7,8]:mode==='marketcap'?[3,8,0,6,4,1,2,5,7]:mode==='new'?[5,7,2,4,1,6,0,8,3]:[0,3,6,1,8,4,2,5,7];let grid=$('#tokenGrid');order.forEach(i=>{if(tokens[i])grid.appendChild([...grid.children].find(c=>c.dataset.token===tokens[i].name.toLowerCase())||document.createElement('span'))})}}
 if(search)search.addEventListener('input',filter);if(sort)sort.addEventListener('change',filter);
 const refresh=$('#refreshBtn');if(refresh)refresh.onclick=()=>toast('Demo view refreshed. Live data requires an indexer/API.');
