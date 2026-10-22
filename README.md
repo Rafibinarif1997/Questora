@@ -1,44 +1,31 @@
-# RHOOD Forge — GitHub Pages root
+# RHOOD Forge — VibeVibe-inspired launchpad UI
 
-Red/black VibeVibe-inspired launchpad UI for Robinhood Chain Testnet. This is a static GitHub Pages site; put the contents of this folder directly in the repository's `main` branch root.
+A responsive, dark, red-accented launchpad discovery interface designed from the provided screenshot.
 
-## Included now
-- Responsive launchpad UI: Explore, Launch Token, tokenomics, lifecycle.
-- Injected EVM wallet connect and Robinhood Chain Testnet network switching.
-- Testnet details: chain ID `46630` (`0xb626`), ETH gas, RPC `https://rpc.testnet.chain.robinhood.com`, explorer `https://explorer.testnet.chain.robinhood.com`.
-- Safe fail-closed launch form: does not pretend to create a token or send transactions when contracts are absent.
-- Config file with explicit contract slots.
+## Files
+- `index.html` — page structure
+- `styles.css` — responsive dark UI, 3-column token cards, mobile layout
+- `app.js` — sample market cards, search, category selectors, tabs, filters, grid/list switch, wallet connect/network switch, safe launch form
+- `config.js` — Robinhood Chain Testnet and contract placeholders
 
-## Important: not yet a live launchpad
-No contract address or ABI was supplied. Therefore token creation, bonding-curve buys/sells, token discovery/indexing, team vesting, Merkle airdrops and Uniswap V4 graduation are not enabled. The UI deliberately does not send transactions against unknown contracts.
+## Important distinction
+Market cards are **sample/demo data** to reproduce the reference layout. They are not real token listings, prices, market caps, volume or live bonding-curve progress. The UI does not submit transactions against unknown contracts.
 
-## Required contracts / integration points
-1. **Launchpad Factory** — creates a token + per-token curve/pool state, emits a canonical `TokenCreated` event, applies the 500,000,000 max supply and prevents further minting.
-2. **Bonding Curve / Trading Router** — quote/buy/sell methods, slippage/deadline handling, reserves and fee accounting, curve allocation 400,000,000 tokens (80%).
-3. **Team Vesting** — 50,000,000 tokens (10%), 12-month vesting with a 6-month cliff.
-4. **Merkle Airdrop** — 50,000,000 tokens (10%), merkle root setup and claim method.
-5. **Graduation Manager / Uniswap V4 integration** — graduation threshold, pool initialization, liquidity position creation, approvals and event emission. Verify exact Robinhood Testnet Uniswap V4 deployments and ABIs before setting addresses.
-6. **Indexer / listing source** — listen for factory token creation and curve/graduation events, or query explorer/indexer APIs; GitHub Pages alone cannot run a private backend or securely hold secrets.
+## Required contracts before enabling on-chain features
+1. Launchpad Factory: creates tokens, emits `TokenCreated`, enforces fixed supply.
+2. Bonding-curve router: buy/sell, quotes, reserves, fees, slippage and deadlines.
+3. Team vesting: 50M tokens, 6-month cliff and 12-month vesting.
+4. Merkle airdrop: 50M token allocation and proof-based claims.
+5. Graduation manager and verified Uniswap V4 deployments: threshold, pool initialization and liquidity migration.
+6. Event indexer/API: token cards, market caps, recent launches, graduation state and progress. Static GitHub Pages cannot host a secure backend.
 
-### Previously chosen tokenomics
-- Maximum supply: 500,000,000 fixed; no additional minting.
-- Bonding curve: 80% / 400,000,000.
-- Team: 10% / 50,000,000; 12-month vesting, 6-month cliff.
-- Merkle airdrop: 10% / 50,000,000.
-- Intended lifecycle: create → bonding curve → trade → graduate → Uniswap V4.
+## Intended tokenomics
+500,000,000 maximum supply; 80% (400M) bonding curve, 10% (50M) team vesting, 10% (50M) Merkle airdrop.
 
-## Configure
-Edit `config.js` after the contracts have been deployed and verified. Add addresses and verified ABI JSON. Do not put private keys, seed phrases, service-role keys, or other secrets in the static site.
+## Testnet configuration
+Chain ID `46630` (`0xb626`), ETH gas. RPC and explorer are configured in `config.js`; verify current official endpoints before production use.
 
-The current UI intentionally leaves transaction-writing disabled until the factory ABI and exact method signatures are implemented and reviewed. Adding only an address is not sufficient to safely call a contract.
+## Deploy
+Upload these five files into the repository's `main` branch root. In GitHub choose **Settings → Pages → Deploy from a branch → main → /(root)**.
 
-## Deploy with GitHub Pages
-1. Upload `index.html`, `styles.css`, `app.js`, `config.js`, and `README.md` into the repository root on `main`.
-2. In GitHub: **Settings → Pages → Deploy from a branch → `main` → `/ (root)**.
-3. Wait for the Pages deployment to complete.
-4. Open the published URL and test wallet connection with test ETH only.
-
-## Safety
-- Testnet only. Never test with a mainnet wallet holding meaningful funds.
-- Never paste seed phrases or private keys into this site or GitHub.
-- Public RPC endpoints may be rate-limited.
+Never place private keys, seed phrases, or service-role keys in this public repository.

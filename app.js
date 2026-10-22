@@ -1,52 +1,23 @@
-(() => {
-const cfg = window.RHOOD_CONFIG;
-const $ = (id) => document.getElementById(id);
-let provider, signer, account, activeFilter = 'all';
-const short = (s) => s ? `${s.slice(0,6)}…${s.slice(-4)}` : '';
-function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),4200)}
-function setStatus(msg){$('listingStatus').textContent=msg}
-function isConfigured(){return Boolean(cfg.contracts.factory && cfg.abis.factory)}
-async function connectWallet(){
- if(!window.ethereum){toast('No EVM wallet detected. Open this site in MetaMask or another injected wallet.');return}
- try {
-  provider = new ethers.BrowserProvider(window.ethereum);
-  await provider.send('eth_requestAccounts',[]);
-  signer=await provider.getSigner();account=await signer.getAddress();
-  const net=await provider.getNetwork();
-  if(Number(net.chainId)!==cfg.chainId){await switchNetwork();provider=new ethers.BrowserProvider(window.ethereum);signer=await provider.getSigner();account=await signer.getAddress()}
-  $('connectBtn').innerHTML=`${short(account)} <span>✓</span>`;
-  $('connectBtn').classList.add('connected');toast('Wallet connected to Robinhood Chain Testnet.');
- } catch(e){toast(e?.shortMessage||e?.message||'Wallet connection cancelled.')}
-}
-async function switchNetwork(){
- try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:cfg.chainIdHex}]})}
- catch(e){if(e.code===4902){await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:cfg.chainIdHex,chainName:cfg.chainName,nativeCurrency:cfg.nativeCurrency,rpcUrls:cfg.rpcUrls,blockExplorerUrls:cfg.blockExplorerUrls}]})}else throw e}
-}
-$('connectBtn').addEventListener('click',connectWallet);
-$('menuBtn').addEventListener('click',()=>$('nav').classList.toggle('open'));
-document.querySelectorAll('nav a').forEach(a=>a.addEventListener('click',()=>$('nav').classList.remove('open')));
-document.querySelectorAll('.filter').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');activeFilter=b.dataset.filter;renderEmpty()}));
-function renderEmpty(){
- const q=$('searchInput').value.trim();
- if(q){$('tokenGrid').innerHTML=`<div class="empty-state"><div class="empty-icon">⌕</div><b>NO INDEXED TOKENS FOUND</b><p>Live token discovery needs a configured factory and event indexer. Your search: “${escapeHtml(q)}”</p></div>`;return}
- const msg=activeFilter==='graduated'?'Graduated token data will appear when the graduation manager and indexer are configured.':activeFilter==='new'?'New launches will appear when the factory address and event indexer are configured.':'Token listings will appear here when a verified RHOOD Forge factory/indexer is configured.';
- $('tokenGrid').innerHTML=`<div class="empty-state"><div class="empty-icon">✳</div><b>THE FLOOR IS QUIET. FOR NOW.</b><p>${msg}</p><a href="#launch" class="text-link">Be the first to forge ↗</a></div>`;
-}
-function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-$('searchInput').addEventListener('input',renderEmpty);
-$('refreshBtn').addEventListener('click',async()=>{renderEmpty();if(isConfigured()){setStatus('Factory configured · indexer required');toast('Factory is configured. Add event indexing to load token listings.')}else{setStatus('Factory not configured');toast('Add the verified factory address and ABI in config.js first.')}});
-$('launchForm').addEventListener('submit',async(e)=>{
- e.preventDefault();const name=$('tokenName').value.trim(),symbol=$('tokenSymbol').value.trim().toUpperCase();
- const msg=$('launchMessage');msg.textContent='';
- if(!name||!symbol){msg.textContent='Token name and ticker are required.';return}
- if(!/^[A-Z0-9]{2,10}$/.test(symbol)){msg.textContent='Ticker must be 2–10 letters or numbers.';return}
- if(!window.ethereum){msg.textContent='Connect an EVM wallet to continue.';return}
- if(!account){await connectWallet();if(!account)return}
- if(!isConfigured()){msg.textContent='Preview ready — no transaction sent. To enable real launches, deploy and verify the RHOOD Forge factory contract, then add its address and ABI in config.js. The factory must enforce the fixed 500M supply, 80/10/10 allocation and team vesting rules.';toast('Launch disabled: factory contract not configured.');return}
- // Intentionally fail closed: a valid ABI and method schema must be explicitly implemented,
- // rather than guessing a payable factory method and risking funds.
- msg.textContent='Factory address detected, but launch is still locked until the verified factory ABI and exact create-token method are wired and reviewed.';
-});
-if(window.ethereum){window.ethereum.on?.('accountsChanged',()=>{account=null;$('connectBtn').innerHTML='Connect wallet <span>↗</span>';if(window.ethereum.selectedAddress)connectWallet()});window.ethereum.on?.('chainChanged',()=>{provider=null;signer=null;account=null;$('connectBtn').innerHTML='Connect wallet <span>↗</span>'})}
-setStatus(isConfigured()?'Factory configured · indexer required':'Factory not configured');
-})();
+(()=>{const $=id=>document.getElementById(id),cfg=window.RHOOD_CONFIG;let account=null,provider=null,signer=null,sort='trending',market='all',listMode=false;const samples=[
+{ticker:'$RFORGE',name:'Forge Genesis',cap:'$63.6K',age:'7h',pair:'RF',progress:89.7,goal:'$1.5K to go',symbol:'R',bg:'linear-gradient(135deg,#09353a,#071b26 55%,#211029)',kind:'new',change:'+18.4%',badge:'HOT'},
+{ticker:'$CHIP',name:'Chip Sauce',cap:'$776K',age:'2w',pair:'ETH',progress:75.6,goal:'$56.6K to go',symbol:'▦',bg:'radial-gradient(circle,#063e59,#071321 65%)',kind:'trending',change:'+12.2%',badge:'TRENDING'},
+{ticker:'$NOVA',name:'Super Nova',cap:'$40K',age:'10h',pair:'RF',progress:81.4,goal:'$2K to go',symbol:'◉',bg:'radial-gradient(circle at 40% 40%,#48209a,#100c36 70%)',kind:'trending',change:'+9.8%',badge:'HOT'},
+{ticker:'$GLPRX',name:'Gul Papax',cap:'$32.4K',age:'11h',pair:'ETH',progress:75.3,goal:'$2.4K to go',symbol:'✺',bg:'linear-gradient(140deg,#385c4d,#172d29 50%,#bd6b52)',kind:'new',change:'+7.5%',badge:'NEW'},
+{ticker:'$QXYKTZ',name:'CopperKernel',cap:'$34.3K',age:'6h',pair:'ETH',progress:78.5,goal:'$2.1K to go',symbol:'✿',bg:'linear-gradient(145deg,#7bb7d8,#264c74 55%,#f3dfba)',kind:'new',change:'+6.4%',badge:'NEW'},
+{ticker:'$W3',name:'WEB3',cap:'$21K',age:'5d',pair:'ETH',progress:54.2,goal:'$4.4K to go',symbol:'⌘',bg:'radial-gradient(circle,#275b85,#10172b 68%)',kind:'trending',change:'+4.2%',badge:''},
+{ticker:'$HOBBIT',name:'Hobbit',cap:'$27.1K',age:'7h',pair:'ETH',progress:66.0,goal:'$3.3K to go',symbol:'♙',bg:'linear-gradient(135deg,#b89a4b,#4c3827 55%,#1a1917)',kind:'new',change:'+3.1%',badge:''},
+{ticker:'$BONEHENGE',name:'Bonehenge',cap:'$30.5K',age:'1d',pair:'RF',progress:68.9,goal:'$3.2K to go',symbol:'▤',bg:'linear-gradient(145deg,#d8a26a,#76503a 55%,#252a1f)',kind:'trending',change:'+2.8%',badge:''},
+{ticker:'$BURN',name:'BURN EVERYTHING',cap:'$2.8M',age:'2w',pair:'RF',progress:72.3,goal:'$255.2K to go',symbol:'▣',bg:'linear-gradient(135deg,#b7d4c2,#668d83 55%,#263b3b)',kind:'trending',change:'+2.4%',badge:''},
+{ticker:'$RHOOD',name:'Hood Rover',cap:'$88.2K',age:'3d',pair:'RF',progress:100,goal:'Graduated',symbol:'R',bg:'linear-gradient(145deg,#c73c34,#3b1116 65%)',kind:'graduated',change:'+22.8%',badge:'GRADUATED'},
+{ticker:'$SPARK',name:'Red Spark',cap:'$18.7K',age:'2h',pair:'ETH',progress:28.4,goal:'$8.1K to go',symbol:'✦',bg:'radial-gradient(circle,#b44339,#271217 68%)',kind:'new',change:'+15.1%',badge:'NEW'},
+{ticker:'$ANVIL',name:'Anvil Club',cap:'$51.9K',age:'1d',pair:'RF',progress:92.2,goal:'$800 to go',symbol:'◆',bg:'linear-gradient(135deg,#333943,#11151c 60%,#722923)',kind:'final',change:'+11.7%',badge:'FINAL STRETCH'}
+];
+const $esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function filtered(){let q=$('search').value.toLowerCase().trim(),min=+$('minProgress').value,pair=$('pairFilter').value,hide=$('hideGraduated').checked;let a=samples.filter(t=>(!q||(t.name+' '+t.ticker).toLowerCase().includes(q))&&(market==='all'||market==='eth'&&t.pair==='ETH'||market==='forge'&&t.pair==='RF'||market==='meme'&&t.kind!=='graduated'||market==='new'&&t.kind==='new')&&t.progress>=min&&(pair==='all'||t.pair===pair)&&(!hide||t.kind!=='graduated'));if(sort==='final')a=a.filter(t=>t.progress>=85&&t.progress<100);if(sort==='new')a.sort((x,y)=>parseAge(x.age)-parseAge(y.age));if(sort==='graduated')a=a.filter(t=>t.kind==='graduated');if(sort==='movers')a.sort((x,y)=>parseFloat(y.change)-parseFloat(x.change));return a}
+function parseAge(s){let n=parseFloat(s),u=s.slice(-1);return n*(u==='h'?1:u==='d'?24:336)}
+function card(t){return `<article class="token"><div class="token-img" style="background:${t.bg}">${t.image?`<img src="${$esc(t.image)}" alt="">`:`<div class="fallback">${$esc(t.symbol)}</div>`}${t.badge?`<span class="badge ${t.kind==='graduated'?'grad':''}">${$esc(t.badge)}</span>`:''}<i class="curve-line"></i></div><div class="token-info"><div class="token-title"><b>${$esc(t.ticker)}</b><span class="mcap">MCAP&nbsp; <strong>${$esc(t.cap)}</strong></span></div><div class="token-name"><span>${$esc(t.name)}</span><span class="token-age">${$esc(t.age)}</span></div><div class="pairrow"><span class="pairicon">${t.pair==='ETH'?'◆':'RF'}</span><span>${t.pair==='ETH'?'ETH':'RHOOD'}</span><span class="vol">${t.change}</span><span class="tinybars"><i></i><i></i><i></i></span></div><div class="progress"><span style="width:${t.progress}%"></span></div><div class="progressline"><span>${t.progress.toFixed(1)}%</span><b>${$esc(t.goal)}</b></div></div></article>`}
+function render(){let a=filtered();$('grid').classList.toggle('listmode',listMode);$('grid').innerHTML=a.length?a.map(card).join(''):`<div class="empty">No tokens match these filters.</div>`;$('resultsLabel').textContent=`DEMO PREVIEW · ${a.length} TOKENS`;$('filterCount').textContent=(+$('minProgress').value>0?1:0)+( $('pairFilter').value!=='all'?1:0)+($('hideGraduated').checked?1:0)||''}
+function toast(s){let el=$('toast');el.textContent=s;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),4000)}
+async function switchNet(){try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:cfg.chainIdHex}]})}catch(e){if(e.code===4902)await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:cfg.chainIdHex,chainName:cfg.chainName,nativeCurrency:cfg.nativeCurrency,rpcUrls:cfg.rpcUrls,blockExplorerUrls:cfg.blockExplorerUrls}]});else throw e}}
+$('connect').onclick=async()=>{if(!window.ethereum){toast('Open this site in MetaMask or another EVM wallet.');return}try{provider=new ethers.BrowserProvider(window.ethereum);await provider.send('eth_requestAccounts',[]);signer=await provider.getSigner();let n=await provider.getNetwork();if(Number(n.chainId)!==cfg.chainId){await switchNet();provider=new ethers.BrowserProvider(window.ethereum);signer=await provider.getSigner()}account=await signer.getAddress();$('connect').textContent=account.slice(0,6)+'…'+account.slice(-4)+' ✓';toast('Wallet connected. Testnet only.')}catch(e){toast(e.shortMessage||e.message||'Wallet connection cancelled.')}}
+$('hamb').onclick=()=>$('nav').classList.toggle('open');$('create').onclick=$('quickCreate').onclick=()=>{document.getElementById('createPanel').scrollIntoView({behavior:'smooth'});$('nav').classList.remove('open')};$('filterToggle').onclick=()=>$('filters').classList.toggle('show');$('listToggle').onclick=()=>{listMode=!listMode;$('listToggle').classList.toggle('active',listMode);render()};document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');sort=b.dataset.sort;render()});document.querySelectorAll('.market').forEach(b=>b.onclick=()=>{document.querySelectorAll('.market').forEach(x=>x.classList.remove('active'));b.classList.add('active');market=b.dataset.market;render()});['search','minProgress','pairFilter','hideGraduated'].forEach(id=>$(id).addEventListener('input',render));$('clearFilters').onclick=()=>{$('minProgress').value='0';$('pairFilter').value='all';$('hideGraduated').checked=false;render()};$('launchForm').onsubmit=async e=>{e.preventDefault();let name=$('tokenName').value.trim(),sym=$('tokenSymbol').value.trim().toUpperCase(),msg=$('message');if(!/^[A-Z0-9]{2,10}$/.test(sym)){msg.textContent='Ticker must be 2–10 letters or numbers.';return}if(!window.ethereum){msg.textContent='Connect an EVM wallet to continue.';return}if(!account){$('connect').click();msg.textContent='Connect your wallet, then review the launch again.';return}if(!cfg.contracts.factory||!cfg.abis.factory){msg.textContent='Preview only: factory address and verified ABI are not configured. No transaction has been sent.';toast('Launch safely disabled until the factory is deployed.');return}msg.textContent='Factory address exists, but transaction writing remains locked until the verified ABI and exact create-token method are implemented and reviewed.'};window.ethereum?.on?.('accountsChanged',()=>location.reload());render()})();
