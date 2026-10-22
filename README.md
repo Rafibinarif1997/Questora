@@ -1,31 +1,40 @@
-# RHOOD Forge — VibeVibe-inspired launchpad UI
+# RHOOD FORGE — Launchpad Frontend
 
-A responsive, dark, red-accented launchpad discovery interface designed from the provided screenshot.
+A polished, responsive multi-page launchpad starter for GitHub Pages. Each major page has its own URL that does not end in `index`:
 
-## Files
-- `index.html` — page structure
-- `styles.css` — responsive dark UI, 3-column token cards, mobile layout
-- `app.js` — sample market cards, search, category selectors, tabs, filters, grid/list switch, wallet connect/network switch, safe launch form
-- `config.js` — Robinhood Chain Testnet and contract placeholders
+- `/discover.html`
+- `/launches.html`
+- `/create.html`
+- `/token.html?token=HSIG`
+- `/trade.html`
+- `/portfolio.html`
+- `/rankings.html`
+- `/guilds.html`
+- `/vesting.html`
+- `/airdrop.html`
+- `/activity.html`
+- `/profile.html`
+- `/settings.html`
+- `/docs.html`
 
-## Important distinction
-Market cards are **sample/demo data** to reproduce the reference layout. They are not real token listings, prices, market caps, volume or live bonding-curve progress. The UI does not submit transactions against unknown contracts.
+## Deploy on GitHub Pages
+1. Extract the ZIP.
+2. Upload **all contents** to the root of your GitHub repository, preserving the `assets/` folder.
+3. Commit to the branch/folder configured for GitHub Pages.
+4. Open your domain root, then use the separate `.html` URLs above.
 
-## Required contracts before enabling on-chain features
-1. Launchpad Factory: creates tokens, emits `TokenCreated`, enforces fixed supply.
-2. Bonding-curve router: buy/sell, quotes, reserves, fees, slippage and deadlines.
-3. Team vesting: 50M tokens, 6-month cliff and 12-month vesting.
-4. Merkle airdrop: 50M token allocation and proof-based claims.
-5. Graduation manager and verified Uniswap V4 deployments: threshold, pool initialization and liquidity migration.
-6. Event indexer/API: token cards, market caps, recent launches, graduation state and progress. Static GitHub Pages cannot host a secure backend.
+## Network reference
+Robinhood Chain Testnet · Chain ID `46630` (`0xb626`) · RPC `https://rpc.testnet.chain.robinhood.com` · Explorer `https://explorer.testnet.chain.robinhood.com`.
 
-## Intended tokenomics
-500,000,000 maximum supply; 80% (400M) bonding curve, 10% (50M) team vesting, 10% (50M) Merkle airdrop.
+## Important production status
+This is a complete frontend starter / interactive UI prototype, not a production-ready live launchpad. Demo tokens, rankings, prices, volume, chart and guild metrics are illustrative. No transaction, deployment, swap, claim, vesting action, account login or wallet creation is performed by this package.
 
-## Testnet configuration
-Chain ID `46630` (`0xb626`), ETH gas. RPC and explorer are configured in `config.js`; verify current official endpoints before production use.
+Before production, implement and audit:
+- Token factory + bonding curve, fees, graduation/migration and DEX integration.
+- Server-side transaction validation and secure contract configuration.
+- X OAuth + embedded wallet provisioning via a provider such as Privy (set the public App ID in `assets/config.js`; never expose OAuth secrets).
+- Supabase Auth/database policies and backend validation for profiles, guilds, invites, referrals and campaign claims.
+- A trusted chain indexer for prices, holders, trades, ranking and activity.
+- Transaction simulation, slippage protection, anti-bot controls, monitoring and independent security review.
 
-## Deploy
-Upload these five files into the repository's `main` branch root. In GitHub choose **Settings → Pages → Deploy from a branch → main → /(root)**.
-
-Never place private keys, seed phrases, or service-role keys in this public repository.
+Do not put private keys, OAuth client secrets, or Supabase service-role keys in public files.
