@@ -38,3 +38,6 @@ Before production, implement and audit:
 - Transaction simulation, slippage protection, anti-bot controls, monitoring and independent security review.
 
 Do not put private keys, OAuth client secrets, or Supabase service-role keys in public files.
+
+## Mobile menu fix
+The mobile hamburger opens a left navigation drawer with a dimmed overlay. Tap outside the drawer, choose a menu item, or press Escape to close it.
