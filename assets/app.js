@@ -14,8 +14,11 @@ const tokens=[
 const rankings=[['Night Shift','NITE','$814K','+$122K','+26.09%'],['Hood Signal','HSIG','$482K','+$74K','+18.42%'],['Pixel Union','PXU','$321K','+$35K','+12.40%'],['Pons Family','PONS','$136K','+$12K','+9.71%'],['After Hours','AFTR','$678K','+$48K','+7.63%'],['Forge Labs','FORGE','$205K','+$8K','+4.26%'],['Redline','RDLN','$44K','+$1K','+1.04%'],['Rover Fuel','FUEL','$87K','−$2K','−2.18%']];
 const guilds=[['FORGE COLLECTIVE','forge','1,284','12.8M','Active builders. No noise.','#ff3b4e'],['ROVER RUNNERS','rover','864','8.4M','Fast hands, long-term minds.','#d7ff63'],['PONS FAMILY','pons','621','5.9M','Community first, always.','#8da7ff'],['NIGHT CREW','night','409','3.2M','Shipping while the world sleeps.','#d59aff']];
 const $=s=>document.querySelector(s), esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function toast(msg){let el=document.querySelector('.toast');if(el)el.remove();el=document.createElement('div');el.className='toast';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),3200)}
-function card(t){return `<article class="token-card" data-token="${esc(t.name.toLowerCase())}"><div class="token-top"><div class="coin-icon ${t.tone}">${esc(t.icon)}</div><div class="coin-meta"><strong>${esc(t.name)} <span class="muted">· ${esc(t.symbol)}</span></strong><span>${esc(t.address)}</span></div><span class="tag">${esc(t.tag)}</span></div><p class="token-desc">${esc(t.desc)}</p><div class="token-metrics"><div><span>Market cap</span><strong>${t.mcap}</strong></div><div><span>24h change</span><strong class="${t.change.startsWith('−')?'negative':'positive'}">${t.change}</strong></div></div><div style="margin-top:14px"><div style="display:flex;justify-content:space-between;color:#818895;font-size:9px;margin-bottom:7px"><span>Bonding curve</span><span>${t.progress}%</span></div><div style="height:4px;background:#2b2e37;border-radius:8px;overflow:hidden"><div style="width:${t.progress}%;height:100%;background:${t.progress>90?'var(--lime)':'var(--red)'}"></div></div></div><div class="token-foot"><span>Vol. ${t.vol}</span><a class="btn btn-small" href="token.html?token=${encodeURIComponent(t.symbol)}">View token ↗</a></div></article>`}
+function toast(msg){
+ let el=document.querySelector('.toast');
+ if(!el){el=document.createElement('div');el.className='toast';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.appendChild(el)}
+ el.textContent=String(msg);el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>{el.classList.remove('show');if(el.isConnected)el.remove()},4200)
+}
 function head(title,desc,actions=''){return `<div class="page-head"><div><div class="eyebrow">RHOOD FORGE / ${esc(page.toUpperCase())}</div><h1>${title}</h1><p>${desc}</p></div><div>${actions}</div></div>`}
 function stats(items){return `<div class="stats-grid">${items.map(x=>`<div class="stat"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="change">${x[2]||''}</div></div>`).join('')}</div>`}
 function tokenList(filterable=true){return `<div class="toolbar">${filterable?`<div class="search"><input id="tokenSearch" placeholder="Search name, symbol or address…" aria-label="Search tokens"></div><select class="select" id="sortTokens"><option value="trending">Trending</option><option value="volume">Volume</option><option value="marketcap">Market cap</option><option value="new">Recently launched</option></select>`:''}<button class="btn" id="refreshBtn">↻ Refresh</button></div><div class="token-grid" id="tokenGrid">${tokens.map(card).join('')}</div>`}
@@ -42,9 +45,9 @@ function sidebar(){return `<aside class="sidebar" id="sidebar">${navGroups.map(g
 function shell(content){return `<header class="topbar"><a class="brand" href="index.html"><span class="brandmark">R</span> RHOOD <em>FORGE</em></a><nav class="nav"><a class="${['home','discover'].includes(page)?'active':''}" href="discover.html">Discover</a><a class="${page==='launches'?'active':''}" href="launches.html">Launches</a><a class="${page==='rankings'?'active':''}" href="rankings.html">Rankings</a><a class="${page==='guilds'?'active':''}" href="guilds.html">Guilds</a><a href="docs.html">Docs</a></nav><div class="top-actions"><span class="network-pill"><i class="dot"></i>RH TESTNET</span><button class="btn btn-primary" id="connectBtn">Connect wallet</button><button class="btn mobile-menu" id="menuBtn" aria-label="Open menu">☰</button></div></header><div class="layout">${sidebar()}<main>${content}<footer class="footer"><span>© 2026 RHOOD FORGE · BUILT FOR ROBINHOOD CHAIN</span><span><a href="docs.html">Docs</a>　·　<a href="settings.html">Security</a>　·　<a href="https://explorer.testnet.chain.robinhood.com" target="_blank" rel="noreferrer">Explorer ↗</a></span></footer></main></div><nav class="mobile-bottom"><a class="${page==='discover'||page==='home'?'active':''}" href="discover.html"><span>◈</span>Discover</a><a class="${page==='launches'?'active':''}" href="launches.html"><span>↗</span>Launches</a><a href="create.html"><span>＋</span>Create</a><a class="${page==='rankings'?'active':''}" href="rankings.html"><span>⌘</span>Ranks</a><a class="${page==='portfolio'?'active':''}" href="portfolio.html"><span>▤</span>Portfolio</a></nav>`}
 function init(){document.getElementById('app').innerHTML=shell((renderers[page]||home)());bind()}
 function bind(){
+let walletAddress='',walletChain='';
 const connect=connectWallet;
 ['connectBtn','connectPortfolio','profileSignIn','settingsSignIn'].forEach(id=>{const el=document.getElementById(id);if(el)el.onclick=connect});
-initWalletUI();
 async function connectWallet(){
  if(!window.ethereum){toast('No EVM wallet detected. Install MetaMask or open this site in a compatible wallet browser.');return}
  try{
@@ -65,7 +68,7 @@ async function connectWallet(){
    updateWalletUI(); toast('Wallet connected.');
  }catch(e){toast(e?.shortMessage||e?.message||'Could not connect wallet.')}
 }
-let walletAddress='',walletChain='';
+initWalletUI();
 function shortAddress(a){return a?a.slice(0,6)+'…'+a.slice(-4):''}
 function updateWalletUI(){
  const connected=!!walletAddress;
@@ -110,7 +113,17 @@ if(menu&&drawer){
  drawer.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeDrawer));
  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
 }
-const search=$('#tokenSearch'),sort=$('#sortTokens');function filter(){let q=(search?.value||'').toLowerCase();let cards=[...document.querySelectorAll('#tokenGrid .token-card')];cards.forEach(c=>c.style.display=c.dataset.token.includes(q)?'':'none');if(sort){let mode=sort.value;let order=mode==='volume'?[3,0,6,4,1,2,5,7,8]:mode==='marketcap'?[3,8,0,6,4,1,2,5,7]:mode==='new'?[5,7,2,4,1,6,0,8,3]:[0,3,6,1,8,4,2,5,7];let grid=$('#tokenGrid');order.forEach(i=>{if(tokens[i])grid.appendChild([...grid.children].find(c=>c.dataset.token===tokens[i].name.toLowerCase())||document.createElement('span'))})}}
+const search=$('#tokenSearch'),sort=$('#sortTokens');function filter(){
+ let q=(search?.value||'').toLowerCase();
+ let cards=[...document.querySelectorAll('#tokenGrid .token-card')];
+ cards.forEach(c=>c.style.display=(c.dataset.token||'').includes(q)?'':'none');
+ if(sort){
+  let mode=sort.value;
+  const order=mode==='volume'?[3,0,6,4,1,2,5,7,8]:mode==='marketcap'?[3,8,0,6,4,1,2,5,7]:mode==='new'?[5,7,2,4,1,6,0,8,3]:[0,3,6,1,8,4,2,5,7];
+  const grid=$('#tokenGrid');
+  if(grid){const existing=new Map([...grid.querySelectorAll('.token-card')].map(c=>[c.dataset.token,c]));order.forEach(i=>{const c=tokens[i]&&existing.get(tokens[i].name.toLowerCase());if(c)grid.appendChild(c)})}
+ }
+}
 if(search)search.addEventListener('input',filter);if(sort)sort.addEventListener('change',filter);
 const refresh=$('#refreshBtn');if(refresh)refresh.onclick=()=>toast('Demo view refreshed. Live data requires an indexer/API.');
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');let f=Number(b.dataset.filter);let chosen=f===1?tokens.filter(t=>t.tag.includes('NEW')||t.tag.includes('JUST')):f===2?tokens.filter(t=>t.progress>=80):f===3?tokens.filter(t=>t.progress===100):f===4?tokens.filter(t=>t.change.startsWith('+')):tokens;let grid=$('#tokenGrid');if(grid)grid.innerHTML=chosen.map(card).join('');if(search)search.value='';bindCardActions()});
@@ -120,12 +133,12 @@ const cg=$('#createGuild');if(cg)cg.onclick=()=>settingsModal('Create a guild','
 document.querySelectorAll('.joinGuild').forEach(b=>b.onclick=()=>settingsModal(b.dataset.name,'Guild details and membership requests require a signed-in account and a live backend.'));
 const gs=$('#guildSearch');if(gs)gs.oninput=()=>document.querySelectorAll('.guild-card').forEach(c=>c.style.display=c.dataset.guild.includes(gs.value.toLowerCase())?'':'none');
 const ib=$('#inviteBtn');if(ib)ib.onclick=()=>{let url=location.origin+location.pathname+'?invite=demo-'+Math.random().toString(36).slice(2,8);$('#inviteOutput').textContent=url;toast('Demo invite generated. It is not registered server-side.')};
-const ca=$('#copyAddress');if(ca)ca.onclick=()=>{navigator.clipboard?.writeText(tokens.find(t=>t.symbol===(new URLSearchParams(location.search).get('token')||'HSIG'))?.address||'').then(()=>toast('Demo address copied')).catch(()=>toast('Clipboard permission unavailable'))};
+const ca=$('#copyAddress');if(ca)ca.onclick=async()=>{const address=tokens.find(t=>t.symbol===(new URLSearchParams(location.search).get('token')||'HSIG'))?.address||'';try{if(!navigator.clipboard?.writeText)throw new Error('Clipboard unavailable');await navigator.clipboard.writeText(address);toast('Demo address copied')}catch(_){toast('Could not copy address. Long-press the address to copy it.')}};
 const flip=$('#flipSwap');if(flip)flip.onclick=()=>{let p=$('#payAsset'),r=$('#receiveAsset'),v=p.value;p.value=r.value;r.value=v;toast('Swap direction switched.')};
 const swap=$('#swapBtn');if(swap)swap.onclick=connect;
 const check=$('#checkAirdrop');if(check)check.onclick=()=>{$('#airdropResult').innerHTML='<div class="notice">Eligibility cannot be verified: no campaign snapshot or claim contract is connected.</div>'};
 const ra=$('#refreshActivity');if(ra)ra.onclick=()=>toast('No indexer connected. Nothing to refresh.');
-const copy=$('#copyAddress');if(copy)copy.onclick=()=>toast('Demo address: '+(new URLSearchParams(location.search).get('token')||'HSIG'));
+
 }
 function bindCardActions(){}
 init();
