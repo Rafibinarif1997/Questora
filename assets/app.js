@@ -141,5 +141,11 @@ const ra=$('#refreshActivity');if(ra)ra.onclick=()=>toast('No indexer connected.
 
 }
 function bindCardActions(){}
-init();
+try {
+ init();
+} catch (err) {
+ console.error('RHOOD FORGE startup error:', err);
+ const host=document.getElementById('app');
+ if(host) host.innerHTML = `<main style="max-width:760px;margin:8vh auto;padding:24px;color:#f3f5f7;font:14px/1.6 system-ui;background:#111318;border:1px solid #292d37;border-radius:16px"><div style="color:#ff5262;font-weight:800;letter-spacing:.12em">RHOOD FORGE</div><h1 style="margin:12px 0">App startup error</h1><p style="color:#aab0bc">The page script loaded but could not render. Please update all files from the same ZIP and ensure the <code>assets</code> folder is at repository root.</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere;background:#090a0d;padding:12px;border-radius:8px;color:#ffb3ba">${String(err && (err.stack||err.message)||err).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</pre><a href="index.html" style="color:#d7ff63">Reload home</a></main>`;
+}
 })();
