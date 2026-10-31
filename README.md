@@ -1,6 +1,6 @@
-# RHOOD FORGE — Launchpad Frontend
+# RHOOD FORGE — Forge Universe Launchpad
 
-A polished, responsive multi-page launchpad starter for GitHub Pages. Each major page has its own URL that does not end in `index`:
+A responsive multi-page token launchpad frontend with an original Industrial Futurism × Pixel Architecture visual identity: deep forge-black surfaces, electric-lime energy accents, cinematic hero treatment, and a custom trading-terminal interface. Each major page has its own URL that does not end in `index`:
 
 - `/discover.html`
 - `/launches.html`
@@ -25,6 +25,10 @@ A polished, responsive multi-page launchpad starter for GitHub Pages. Each major
 
 ## Network reference
 Robinhood Chain Testnet · Chain ID `46630` (`0xb626`) · RPC `https://rpc.testnet.chain.robinhood.com` · Explorer `https://explorer.testnet.chain.robinhood.com`.
+
+## Design update
+
+The Forge Universe theme is implemented in `assets/styles.css`; homepage copy and the illustrative-data label are in `assets/app.js`. All existing page routes share the same design system.
 
 ## Important production status
 This is a complete frontend starter / interactive UI prototype, not a production-ready live launchpad. Demo tokens, rankings, prices, volume, chart and guild metrics are illustrative. Wallet connection and native balance reading work with a compatible injected EVM wallet. Token deployment, swaps, claims, vesting transactions and live indexed data remain disabled until the matching audited contracts and backend/indexer are configured.
