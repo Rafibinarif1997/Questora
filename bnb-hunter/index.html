@@ -28,7 +28,7 @@ button,input,textarea{font:inherit}textarea.input{resize:vertical;min-height:130
 <section class="card"><div class="section-head"><h3>Smart wallet watchlist</h3><span class="sub">BNB Chain addresses</span></div><form id="walletForm"><div class="inputrow"><input class="input" id="walletAddress" placeholder="0x wallet address" minlength="42" maxlength="42" required><button class="btn" type="submit">Add wallet</button></div><input class="input" id="walletLabel" placeholder="Label (optional)" style="margin-top:9px"></form><div style="border-top:1px solid var(--line);margin-top:18px;padding-top:16px"><div class="section-head"><h3>Bulk import wallets</h3><span class="pill">Up to 500+</span></div><p class="small">Paste one address per line, or separate addresses with commas or spaces. Invalid and duplicate addresses will be skipped.</p><textarea class="input" id="bulkWallets" placeholder="0x1234...&#10;0xabcd...&#10;0x9876..." rows="7"></textarea><div class="inputrow"><button class="btn" id="bulkImportBtn" type="button">Import wallets</button><span class="small" id="bulkStatus" aria-live="polite"></span></div></div><div class="list" id="walletList"><div class="empty">Your watchlist is empty.</div></div></section>
 <section class="card"><div class="section-head"><h3>Latest discoveries</h3><span class="sub">Read-only</span></div><div class="list" id="eventList"><div class="empty">No mint events yet. Scanner setup is pending.</div></div></section>
 </div>
-<div class="card section"><div class="section-head"><h3>Agent status</h3><span class="pill">MONITORING ONLY</span></div><p class="sub">Wallet tracking and dashboard are being connected. Automated chain scanning, AI scoring and Telegram alerts will be enabled after the RPC/indexer and scheduled Edge Function are configured.</p><button class="btn secondary" id="logoutBtn">Sign out</button></div>
+<div class="card section"><div class="section-head"><h3>Agent status</h3><span class="pill">MONITORING ONLY</span></div><p class="sub">Run an on-demand BNB Chain NFT mint scan across your enabled watchlist. First run checks the latest 1,000 blocks; later runs continue from the last successful checkpoint.</p><div class="inputrow"><button class="btn" id="scanNowBtn" type="button">Scan wallets now</button><span class="small" id="scanStatus" aria-live="polite">Scanner deployment required</span></div><button class="btn secondary" id="logoutBtn" style="margin-top:12px">Sign out</button></div>
 </main>
 <div class="footer">BNB HUNTER · Built for discovery, not guaranteed profit. Never share seed phrases or private keys.</div>
 </div>
@@ -62,6 +62,17 @@ async function refresh(){ if(!client)return;
  $("walletList").innerHTML=wallets.length?wallets.map(x=>'<div class="item"><div><div class="addr">'+esc(x.address)+'</div><div class="small">'+esc(x.label||"Unlabelled wallet")+'</div></div><button class="btn secondary" data-remove="'+esc(x.id)+'" style="padding:7px 10px">Remove</button></div>').join(""):'<div class="empty">No wallets added yet.</div>';
  $("eventList").innerHTML=events.length?events.map(x=>'<div class="item"><div><div class="addr">'+esc(x.nft_contract)+'</div><div class="small">Minter '+esc(x.minter_address)+' · Token '+esc(x.token_id??"—")+'</div></div><span class="pill">MINT</span></div>').join(""):'<div class="empty">No mint events recorded yet.</div>';
 }
+$("scanNowBtn").addEventListener("click",async()=>{
+ const btn=$("scanNowBtn"), status=$("scanStatus");
+ btn.disabled=true;status.textContent="Starting BNB Chain scan…";
+ try{
+  const {data,error}=await client.functions.invoke("scan-wallets",{body:{}});
+  if(error)throw error;
+  status.textContent="Scanned "+data.wallets_checked+" wallets · "+data.events_found+" mint events · blocks "+data.from_block+"–"+data.to_block;
+  await refresh();
+ }catch(err){status.textContent="Scanner error: "+(err.message||"Function not deployed or unavailable");}
+ finally{btn.disabled=false;}
+});
 $("loginForm").addEventListener("submit",async ev=>{ev.preventDefault();if(!client){$("authMessage").textContent="Supabase backend is not connected yet. Refresh after config loads.";return;}$("loginBtn").disabled=true;$("authMessage").textContent="Sending sign-in link…";const {error}=await client.auth.signInWithOtp({email:$("email").value,options:{emailRedirectTo:location.href}});$("authMessage").textContent=error?error.message:"Check your email for the secure sign-in link.";$("loginBtn").disabled=false;});
 $("walletForm").addEventListener("submit",async ev=>{ev.preventDefault();const address=$("walletAddress").value.trim();if(!/^0x[a-fA-F0-9]{40}$/.test(address)){alert("Enter a valid BNB Chain address.");return;}const {data:{user}}=await client.auth.getUser();const {error}=await client.from("hunter_wallets").insert({owner_id:user.id,address:address.toLowerCase(),label:$("walletLabel").value.trim()});if(error){alert(error.message);return;}$("walletAddress").value="";$("walletLabel").value="";await refresh();});
 $("bulkImportBtn").addEventListener("click",async()=>{
