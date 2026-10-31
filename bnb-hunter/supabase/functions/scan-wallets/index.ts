@@ -5,6 +5,7 @@ import { id as eventId } from "npm:ethers@6";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const CRON_SECRET = Deno.env.get("BNB_HUNTER_CRON_SECRET");
 const BSC_RPC_URL = Deno.env.get("BSC_RPC_URL") || "https://bsc-dataseed.binance.org/";
 const ERC721_TRANSFER = eventId("Transfer(address,address,uint256)").toLowerCase();
 const ERC1155_SINGLE = eventId("TransferSingle(address,address,address,uint256,uint256)").toLowerCase();
