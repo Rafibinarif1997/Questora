@@ -62,9 +62,9 @@ contract BondingCurve {
         feeBps = feeBps_;
         graduationThreshold = graduationThreshold_;
         factory = msg.sender;
-        // Initial virtual ETH reserve is 1 ETH. The opening marginal price is
-        // 1 ETH / curveTokenAllocation; these parameters require economic simulation.
-        virtualEthReserve = 1 ether;
+        // Initial virtual ETH reserve is 100 ETH. The opening marginal price is
+        // 100 ETH / curveTokenAllocation; these parameters require economic simulation.
+        virtualEthReserve = 100 ether;
         virtualTokenReserve = curveTokenAllocation_;
     }
 
