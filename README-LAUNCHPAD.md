@@ -19,7 +19,7 @@ Official network details: https://docs.robinhood.com/chain/connecting/
 ## Critical limitations — do not use with real funds
 This is an unaudited development baseline, not production-ready software. Do not deploy to mainnet or promote it as secure.
 
-1. The curve is a simple virtual-reserve constant-product model. Initial virtual ETH reserve is 1 ETH; price and graduation parameters require economic simulation and adversarial testing.
+1. The curve is a simple virtual-reserve constant-product model. Initial virtual ETH reserve is 100 ETH; price and graduation parameters require economic simulation and adversarial testing.
 2. Reaching the threshold only sets `graduationReady` and pauses new buys. It does **not** migrate liquidity to Uniswap v4. Sells remain enabled. A reviewed migration adapter and verified Robinhood Chain v4 deployment addresses are required.
 3. Team and airdrop allocations are transferred to the launch-time recipient addresses. They are not vested or claim-locked.
 4. The fee is 1% and goes to the platform treasury. Creator fees are not implemented in this baseline.
@@ -35,6 +35,23 @@ forge test
 ```
 
 Never store deployment private keys in the repository. Use environment variables and a dedicated test wallet. Verify `eth_chainId` equals `0xb626` before broadcasting.
+
+## Testnet deployment preparation
+
+Copy `.env.example` to `.env`, replace every placeholder with addresses you control, and fund a dedicated test wallet from the official testnet faucet. Then run:
+
+```bash
+forge build
+forge test
+source .env
+forge script script/DeployRhoodFactory.s.sol:DeployRhoodFactory --rpc-url "$RH_RPC_URL" --broadcast
+```
+
+Do not use a wallet that holds valuable assets. Confirm chain ID 46630 and inspect the deployment transaction on the testnet explorer. The current script deploys only the factory; token launches are then created through `launchToken`.
+
+## Uniswap v4 deployment note
+
+Uniswap publishes Robinhood Chain **mainnet** v4 addresses (chain 4663), including PoolManager `0x8366a39cc670b4001a1121b8f6a443a643e40951` and PositionManager `0x58daec3116aae6d93017baaea7749052e8a04fa7`. These are mainnet addresses and must never be used on testnet. The official deployment list does not establish matching testnet addresses, so v4 graduation remains intentionally unimplemented until testnet contracts and the PositionManager interface are independently verified. See https://developers.uniswap.org/docs/protocols/v4/deployments.
 
 ## Next milestones
 1. Unit, fuzz, invariant and economic tests.
