@@ -14,10 +14,12 @@ const BLOCK_BATCH_SIZE = 500;
 const MIN_BLOCK_SPAN = 1;
 const MAX_RPC_RETRIES = 3;
 
-const ERC721_TRANSFER = eventId("Transfer(address,address,uint256)").toLowerCase();
+const ERC20_TRANSFER = eventId("Transfer(address,address,uint256)").toLowerCase();
+const ERC721_TRANSFER = ERC20_TRANSFER;
 const ERC1155_SINGLE = eventId("TransferSingle(address,address,address,uint256,uint256)").toLowerCase();
 const ERC1155_BATCH = eventId("TransferBatch(address,address,address,uint256[],uint256[])").toLowerCase();
 const ZERO = "0x" + "0".repeat(64);
+const tokenMetaCache = new Map<string, { name: string | null; symbol: string | null; decimals: number | null }>();
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
@@ -71,6 +73,38 @@ async function rpc(method: string, params: unknown[]) {
     }
   }
   throw new Error(lastError);
+}
+
+async function readTokenMetadata(contract: string) {
+  const key = contract.toLowerCase();
+  const cached = tokenMetaCache.get(key);
+  if (cached) return cached;
+  const call = async (data: string) => {
+    try {
+      const result = await rpc("eth_call", [{ to: key, data }, "latest"]);
+      if (!result || result === "0x") return null;
+      const hex = String(result).slice(2);
+      if (hex.length >= 128) {
+        const offset = Number(BigInt("0x" + hex.slice(0, 64))) * 2;
+        const length = Number(BigInt("0x" + hex.slice(offset, offset + 64)));
+        if (length >= 0 && length <= 512) {
+          const bytes = hex.slice(offset + 64, offset + 64 + length * 2);
+          return new TextDecoder().decode(new Uint8Array((bytes.match(/.{2}/g) || []).map(x => parseInt(x, 16)))).replace(/\\0/g, "").trim();
+        }
+      }
+      const bytes = hex.replace(/(00)+$/g, "");
+      return new TextDecoder().decode(new Uint8Array((bytes.match(/.{2}/g) || []).map(x => parseInt(x, 16)))).replace(/\\0/g, "").trim() || null;
+    } catch { return null; }
+  };
+  const [name, symbol, decimalsHex] = await Promise.all([
+    call("0x06fdde03"), call("0x95d89b41"),
+    rpc("eth_call", [{ to: key, data: "0x313ce567" }, "latest"]).catch(() => null),
+  ]);
+  let decimals: number | null = null;
+  try { if (decimalsHex && decimalsHex !== "0x") decimals = Number(BigInt(decimalsHex)); } catch {}
+  const value = { name, symbol, decimals };
+  tokenMetaCache.set(key, value);
+  return value;
 }
 
 // Split recipient topics first, then block windows, to fit strict BSC RPC limits.
@@ -202,17 +236,18 @@ Deno.serve(async (req) => {
             topicAddress(w.address).toLowerCase(), w,
           ]));
           const queries = [
+            { kind: "erc20_mint", filter: { topics: [ERC20_TRANSFER, ZERO, topics] } },
             { kind: "erc721_mint", filter: { topics: [ERC721_TRANSFER, ZERO, topics] } },
             { kind: "erc1155_single_mint", filter: { topics: [ERC1155_SINGLE, null, ZERO, topics] } },
             { kind: "erc1155_batch_mint", filter: { topics: [ERC1155_BATCH, null, ZERO, topics] } },
           ];
 
           for (const q of queries) {
-            const recipientTopicIndex = q.kind === "erc721_mint" ? 2 : 3;
+            const recipientTopicIndex = (q.kind === "erc721_mint" || q.kind === "erc20_mint") ? 2 : 3;
             const logs = await getLogsAdaptive(q.filter, fromBlock, toBlock, recipientTopicIndex);
             const rows: Record<string, unknown>[] = [];
             for (const log of logs || []) {
-              const recipientTopic = q.kind === "erc721_mint" ? log.topics?.[2] : log.topics?.[3];
+              const recipientTopic = (q.kind === "erc721_mint" || q.kind === "erc20_mint") ? log.topics?.[2] : log.topics?.[3];
               const wallet = walletByTopic.get(String(recipientTopic || "").toLowerCase()) as
                 | { id: string; address: string }
                 | undefined;
