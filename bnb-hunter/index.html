@@ -44,7 +44,7 @@ let client=null;
 if(!ready||!window.supabase){$("systemStatus").textContent="BACKEND NOT CONNECTED";$("authPanel").classList.remove("hidden");$("setupNotice").innerHTML="<strong>Backend connection failed.</strong> "+(!ready?"Supabase URL/key config was not loaded.": "Supabase client library did not load. Check internet/CDN access and refresh.");$("authMessage").textContent="Backend is not ready yet. Wallet connection can still be tested; email login will work after Supabase connects."; }
 if(!ready||!window.supabase){$("loginBtn").disabled=true;} else { client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey); }
 $("connectWalletBtn").addEventListener("click",async()=>{const p=window.ethereum;if(!p){$("connectedWallet").textContent="No injected wallet found. Open this page in MetaMask or Binance Wallet browser.";return;}try{const accounts=await p.request({method:"eth_requestAccounts"});if(!accounts||!accounts.length)return;const chain=await p.request({method:"eth_chainId"});$("connectedWallet").textContent="Connected: "+accounts[0].slice(0,6)+"..."+accounts[0].slice(-4)+" · "+(chain==="0x38"?"BNB Chain":"Switch wallet to BNB Chain (Chain ID 56)");if(chain!=="0x38"){try{await p.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x38"}]});$("connectedWallet").textContent="Connected to BNB Chain: "+accounts[0].slice(0,6)+"..."+accounts[0].slice(-4);}catch(e){$("connectedWallet").textContent="Wallet connected, but network switch was not approved.";}}}catch(e){$("connectedWallet").textContent=e.message||"Wallet connection cancelled.";}});
-if(!client){return;} $("systemStatus").textContent="SUPABASE READY";
+if(!client){return;} $("systemStatus").textContent="SUPABASE READY";\ndocument.getElementById("walletManager").style.display="none";\ndocument.getElementById("agentControls").style.display="none";
 $("setupNotice").textContent="Supabase configured. Sign in to manage your private wallet watchlist.";
 async function refresh(){ if(!client)return;
  const {data:{user}}=await client.auth.getUser();
@@ -52,27 +52,16 @@ async function refresh(){ if(!client)return;
  $("authPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");
  const [w,e,s]=await Promise.all([
   client.from("hunter_wallets").select("id,address,label,enabled,created_at").order("created_at",{ascending:false}),
-  client.from("hunter_mint_events").select("id,nft_contract,minter_address,token_id,tx_hash,detected_at").order("detected_at",{ascending:false}).limit(8),
+  client.from("hunter_activity_events").select("id,activity_type,contract_address,wallet_address,token_id,amount,token_name,token_symbol,token_decimals,tx_hash,block_number,project_name,contract_url,transaction_url,detected_at").order("detected_at",{ascending:false}).limit(30),
   client.from("hunter_scan_runs").select("status,finished_at").order("started_at",{ascending:false}).limit(1)
  ]);
- if(w.error||e.error||s.error){$("setupNotice").textContent="Database setup pending: run bnb-hunter/supabase/schema.sql in Supabase SQL Editor. "+(w.error?.message||e.error?.message||s.error?.message);return;}
+ if(w.error||e.error||s.error){$("setupNotice").textContent="Run bnb-hunter/supabase/activity-upgrade.sql in Supabase SQL Editor. "+(w.error?.message||e.error?.message||s.error?.message);return;}
  const wallets=w.data||[], events=e.data||[], scans=s.data||[];
  $("walletCount").textContent=wallets.length;$("eventCount").textContent=events.length;
  $("lastScan").textContent=scans[0]?.finished_at?new Date(scans[0].finished_at).toLocaleString():"Not run";
  $("walletList").innerHTML=wallets.length?wallets.map(x=>'<div class="item"><div><div class="addr">'+esc(x.address)+'</div><div class="small">'+esc(x.label||"Unlabelled wallet")+'</div></div><button class="btn secondary" data-remove="'+esc(x.id)+'" style="padding:7px 10px">Remove</button></div>').join(""):'<div class="empty">No wallets added yet.</div>';
- $("eventList").innerHTML=events.length?events.map(x=>'<div class="item"><div><div class="addr">'+esc(x.nft_contract)+'</div><div class="small">Minter '+esc(x.minter_address)+' · Token '+esc(x.token_id??"—")+'</div></div><span class="pill">MINT</span></div>').join(""):'<div class="empty">No mint events recorded yet.</div>';
+ $("eventList").innerHTML=events.length?events.map(x=>{const nft=x.activity_type!=="erc20_mint";const title=x.project_name||x.token_name||x.token_symbol||(nft?"Unknown NFT collection":"Unknown token");const detail=nft?("NFT #"+(x.token_id??"—")):((x.amount&&x.token_decimals!==null)?(Number(BigInt(x.amount))/Math.pow(10,x.token_decimals)).toLocaleString()+" "+(x.token_symbol||"tokens"):(x.amount||"Token mint"));const kind=x.activity_type==="erc20_mint"?"TOKEN MINT":x.activity_type==="erc721_mint"?"NFT MINT":"ERC-1155 MINT";return '<div class="item" style="align-items:flex-start"><div style="min-width:0"><div><strong>'+esc(title)+'</strong> <span class="pill">'+kind+'</span></div><div class="small">'+esc(detail)+' · Wallet '+esc(x.wallet_address)+'</div><div class="small">Contract: '+esc(x.contract_address)+'</div><div class="small">Block '+esc(x.block_number)+' · '+new Date(x.detected_at).toLocaleString()+'</div><div class="small"><a style="color:var(--cyan)" target="_blank" rel="noopener" href="'+esc(x.transaction_url||("https://bscscan.com/tx/"+x.tx_hash))+'">Transaction</a> · <a style="color:var(--cyan)" target="_blank" rel="noopener" href="'+esc(x.contract_url||("https://bscscan.com/token/"+x.contract_address))+'">Contract / Project</a></div></div></div>';}).join(""):'<div class="empty">No mint activity detected yet.</div>';
 }
-$("scanNowBtn").addEventListener("click",async()=>{
- const btn=$("scanNowBtn"), status=$("scanStatus");
- btn.disabled=true;status.textContent="Starting BNB Chain scan…";
- try{
-  const {data,error}=await client.functions.invoke("scan-wallets",{body:{}});
-  if(error)throw error;
-  status.textContent="Scanned "+data.wallets_checked+" wallets · "+data.events_found+" mint events · blocks "+data.from_block+"–"+data.to_block;
-  await refresh();
- }catch(err){status.textContent="Scanner error: "+(err.message||"Function not deployed or unavailable");}
- finally{btn.disabled=false;}
-});
 $("loginForm").addEventListener("submit",async ev=>{ev.preventDefault();if(!client){$("authMessage").textContent="Supabase backend is not connected yet. Refresh after config loads.";return;}$("loginBtn").disabled=true;$("authMessage").textContent="Sending sign-in link…";const {error}=await client.auth.signInWithOtp({email:$("email").value,options:{emailRedirectTo:location.href}});$("authMessage").textContent=error?error.message:"Check your email for the secure sign-in link.";$("loginBtn").disabled=false;});
 $("walletForm").addEventListener("submit",async ev=>{ev.preventDefault();const address=$("walletAddress").value.trim();if(!/^0x[a-fA-F0-9]{40}$/.test(address)){alert("Enter a valid BNB Chain address.");return;}const {data:{user}}=await client.auth.getUser();const {error}=await client.from("hunter_wallets").insert({owner_id:user.id,address:address.toLowerCase(),label:$("walletLabel").value.trim()});if(error){alert(error.message);return;}$("walletAddress").value="";$("walletLabel").value="";await refresh();});
 $("bulkImportBtn").addEventListener("click",async()=>{
