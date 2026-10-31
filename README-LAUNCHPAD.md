@@ -58,5 +58,20 @@ Uniswap publishes Robinhood Chain **mainnet** v4 addresses (chain 4663), includi
 2. Confirm Uniswap v4 deployment addresses and PositionManager compatibility on Robinhood Chain.
 3. Implement and audit graduation liquidity migration and LP custody/locking.
 4. Add trusted event indexing and Supabase schema/RLS.
-5. Replace demo frontend data with indexed reads and verified wallet write actions.
-6. Execute end-to-end testnet launch, buy, sell, graduation and failure-mode tests.
+5. Configure the deployed factory address in `assets/config.js`; the create form then calls `launchToken` on testnet. The trade terminal supports direct curve quotes, buys and sells when given the token/curve addresses.
+6. Deploy the Supabase Edge Function `indexer`, set its secrets, and invoke it on a schedule. It indexes launch, buy, sell and graduation-threshold events; candle aggregation remains a follow-up.
+7. Execute end-to-end testnet launch, buy, sell, graduation and failure-mode tests.
+
+
+## Supabase indexer setup
+
+Apply `supabase/schema.sql`, then deploy `supabase/functions/indexer`. Configure function secrets:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY` (server-side only)
+- `INDEXER_SECRET` (long random value sent as the `x-indexer-secret` header)
+- `FACTORY_ADDRESS` (deployed testnet factory)
+- `RH_RPC_URL` (optional; defaults to Robinhood's public testnet RPC)
+- `START_BLOCK` (factory deployment block)
+- `MAX_BLOCK_RANGE` (optional; defaults to 1500)
+
+Invoke the function periodically from a trusted scheduler with a POST request and the secret header. Do not place the service-role key or indexer secret in browser code. The indexer currently stores launches/trades and graduation-ready status; it does not yet aggregate OHLC candles or provide a reorg/finality reconciliation process.
