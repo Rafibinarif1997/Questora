@@ -43,6 +43,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return new Response(JSON.stringify({ error: "POST required" }), { status: 405, headers: { ...cors, "content-type": "application/json" } });
   try {
+    if (!SUPABASE_URL) throw new Error("Missing Supabase environment variable: SUPABASE_URL");
+    if (!SERVICE_ROLE_KEY) throw new Error("Missing Supabase environment variable: SUPABASE_SERVICE_ROLE_KEY");
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+    console.log("scan-wallets: request accepted");
     const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     if (!token) return new Response(JSON.stringify({ error: "Sign in first" }), { status: 401, headers: { ...cors, "content-type": "application/json" } });
     const { data: authData, error: authError } = await admin.auth.getUser(token);
