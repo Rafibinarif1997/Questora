@@ -90,3 +90,11 @@ create policy "Public can read candles"
   on public.token_candles for select to anon, authenticated using (true);
 
 grant select on public.launches, public.trade_events, public.token_candles to anon, authenticated;
+
+create table if not exists public.indexer_state (
+  key text primary key,
+  last_block bigint not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.indexer_state enable row level security;
+-- No client policies or grants: indexer state is service-role only.
