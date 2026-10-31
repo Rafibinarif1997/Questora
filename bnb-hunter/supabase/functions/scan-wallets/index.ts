@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     if (!token) return new Response(JSON.stringify({ error: "Sign in first" }), { status: 401, headers: { ...cors, "content-type": "application/json" } });
     // Supabase Cron calls this endpoint with the service-role JWT stored in Vault.
     // Browser calls continue to require a normal authenticated user session.
-    const isScheduledCall = token === SERVICE_ROLE_KEY;
+  const isScheduledCall = Boolean(CRON_SECRET && token === CRON_SECRET);
     let ownerIds: string[] = [];
     if (isScheduledCall) {
       const { data: enabledWallets, error: ownersError } = await admin.from("hunter_wallets").select("owner_id").eq("enabled", true);
