@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     if (!SERVICE_ROLE_KEY) throw new Error("Missing Supabase environment variable: SUPABASE_SERVICE_ROLE_KEY");
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
     console.log("scan-wallets: request accepted");
-    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\\s+/i, "");
+    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     if (!token) return new Response(JSON.stringify({ error: "Sign in first" }), { status: 401, headers: { ...cors, "content-type": "application/json" } });
     // Supabase Cron calls this endpoint with the service-role JWT stored in Vault.
     // Browser calls continue to require a normal authenticated user session.
@@ -62,8 +62,6 @@ Deno.serve(async (req) => {
       if (authError || !authData.user) return new Response(JSON.stringify({ error: "Invalid session" }), { status: 401, headers: { ...cors, "content-type": "application/json" } });
       ownerIds = [authData.user.id];
     }
-    const latestBlockHex = await rpc("eth_blockNumber", []);
-    const latestBlock = Number(BigInt(latestBlockHex));
     let totalWallets = 0;
     let totalEvents = 0;
     let scannedOwners = 0;
