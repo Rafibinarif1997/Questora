@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
-import { createPublicClient, decodeEventLog, http, parseAbi } from "npm:viem@2.21.54";
+import { createPublicClient, decodeEventLog, http, parseAbi, toEventSelector } from "npm:viem@2.21.54";
 
 const chainId = 46630;
 const launchAbi = parseAbi([
@@ -10,6 +10,9 @@ const curveAbi = parseAbi([
   "event Sold(address indexed seller,uint256 tokensIn,uint256 ethOut,uint256 fee)",
   "event GraduationThresholdReached(uint256 ethReserve,uint256 blockNumber)"
 ]);
+const boughtSelector = toEventSelector(curveAbi[0]);
+const soldSelector = toEventSelector(curveAbi[1]);
+const graduationSelector = toEventSelector(curveAbi[2]);
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("POST required", { status: 405 });
@@ -97,8 +100,9 @@ Deno.serve(async (req) => {
     const logs = await client.getLogs({ address: curveAddress, fromBlock, toBlock });
     const rows = [];
     for (const log of logs) {
-      if (!log.topics[0]) continue;
-      try {
+      const topic = log.topics[0];
+      if (!topic || ![boughtSelector, soldSelector, graduationSelector].includes(topic)) continue;
+      {
         const decoded = decodeEventLog({ abi: curveAbi, data: log.data, topics: log.topics });
         const blockTimestamp = await timestamp(log.blockNumber!);
         if (decoded.eventName === "Bought") {
@@ -126,9 +130,6 @@ Deno.serve(async (req) => {
           if (error) throw new Error("Graduation status update failed: " + error.message);
           graduationEvents++;
         }
-      } catch (error) {
-        if (String(error).includes("Decoded event signature")) continue;
-        throw error;
       }
     }
     if (rows.length) {
