@@ -1,8 +1,7 @@
 // BNB HUNTER public client configuration.
-// Fill these two values from Supabase Project Settings -> API.
-// The anon/publishable key is intended for browser use.
-// NEVER place the service_role key, private keys, or seed phrases here.
+// The publishable key is intended for browser use.
+// NEVER place the service_role key, secret keys, private keys, or seed phrases here.
 window.BNB_HUNTER_CONFIG = {
   supabaseUrl: "https://nhniygxusydosktigyze.supabase.co",
-  supabaseAnonKey: "YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY"
+  supabaseAnonKey: "sb_publishable_oGRg3MkJaQ79Jdbxj_QH-A_F0fbZNc0"
 };
