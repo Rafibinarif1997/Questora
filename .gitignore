@@ -1,0 +1,13 @@
+# Foundry
+out/
+cache/
+broadcast/
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+
+# Node / tooling
+node_modules/
+.DS_Store
