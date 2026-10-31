@@ -65,7 +65,7 @@ Uniswap publishes Robinhood Chain **mainnet** v4 addresses (chain 4663), includi
 
 ## Supabase indexer setup
 
-Apply `supabase/schema.sql`, then deploy `supabase/functions/indexer`. Configure function secrets:
+Link the Supabase project and run `supabase db push` to apply `supabase/migrations/202610310001_launchpad_schema.sql` (or run `supabase/schema.sql` manually in the SQL Editor). Then deploy `supabase/functions/indexer` and configure function secrets:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY` (server-side only)
 - `INDEXER_SECRET` (long random value sent as the `x-indexer-secret` header)
