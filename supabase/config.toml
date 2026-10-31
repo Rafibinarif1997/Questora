@@ -1,0 +1,2 @@
+[functions.indexer]
+verify_jwt = false

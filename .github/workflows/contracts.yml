@@ -1,0 +1,35 @@
+name: Launchpad contracts
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - "contracts/**"
+      - "test/**"
+      - "script/**"
+      - "foundry.toml"
+      - ".github/workflows/contracts.yml"
+  pull_request:
+    paths:
+      - "contracts/**"
+      - "test/**"
+      - "script/**"
+      - "foundry.toml"
+      - ".github/workflows/contracts.yml"
+
+jobs:
+  foundry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - name: Check frontend JavaScript syntax
+        run: node --check assets/app.js && node --check assets/config.js
+      - uses: denoland/setup-deno@v2
+      - name: Type-check Supabase indexer
+        run: deno check --no-lock supabase/functions/indexer/index.ts
+      - name: Build contracts
+        run: forge build
+      - name: Run unit tests
+        run: forge test -vvv
