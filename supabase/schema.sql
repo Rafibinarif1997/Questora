@@ -90,4 +90,3 @@ create policy "Public can read candles"
   on public.token_candles for select to anon, authenticated using (true);
 
 grant select on public.launches, public.trade_events, public.token_candles to anon, authenticated;
-grant usage, select on sequence public.trade_events_id_seq to anon, authenticated;
