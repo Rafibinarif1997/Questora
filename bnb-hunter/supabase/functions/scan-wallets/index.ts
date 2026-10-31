@@ -247,29 +247,73 @@ Deno.serve(async (req) => {
             const logs = await getLogsAdaptive(q.filter, fromBlock, toBlock, recipientTopicIndex);
             const rows: Record<string, unknown>[] = [];
             for (const log of logs || []) {
+              // ERC-20 and ERC-721 share Transfer topic; ERC-721 has indexed tokenId as topic[3].
+              if (q.kind === "erc20_mint" && (log.topics?.length || 0) > 3) continue;
+              if (q.kind === "erc721_mint" && (log.topics?.length || 0) < 4) continue;
               const recipientTopic = (q.kind === "erc721_mint" || q.kind === "erc20_mint") ? log.topics?.[2] : log.topics?.[3];
               const wallet = walletByTopic.get(String(recipientTopic || "").toLowerCase()) as
                 | { id: string; address: string }
                 | undefined;
               if (!wallet) continue;
-              const base = {
-                owner_id: ownerId,
-                wallet_id: wallet.id,
-                chain_id: 56,
-                nft_contract: String(log.address).toLowerCase(),
-                minter_address: wallet.address,
-                tx_hash: String(log.transactionHash).toLowerCase(),
-                block_number: Number(BigInt(log.blockNumber)),
-                event_kind: q.kind,
+              const contract = String(log.address).toLowerCase();
+              const txHash = String(log.transactionHash).toLowerCase();
+              const blockNumber = Number(BigInt(log.blockNumber));
+              const meta = await readTokenMetadata(contract);
+              const common = {
+                owner_id: ownerId, wallet_id: wallet.id, chain_id: 56,
+                contract_address: contract, wallet_address: wallet.address,
+                token_name: meta.name, token_symbol: meta.symbol,
+                tx_hash: txHash, block_number: blockNumber,
+                project_name: meta.name || meta.symbol || null,
+                contract_url: "https://bscscan.com/token/" + contract,
+                transaction_url: "https://bscscan.com/tx/" + txHash,
               };
-              if (q.kind === "erc721_mint") {
-                rows.push({ ...base, token_id: BigInt(log.topics[3]).toString() });
+              if (q.kind === "erc20_mint") {
+                const amount = word(log.data, 0).toString();
+                const { error } = await admin.from("hunter_activity_events").upsert({
+                  ...common, activity_type: "erc20_mint", token_id: "0",
+                  amount, token_decimals: meta.decimals,
+                }, { onConflict: "owner_id,tx_hash,contract_address,activity_type,token_id", ignoreDuplicates: true });
+                if (error) throw error;
+                found++;
+              } else if (q.kind === "erc721_mint") {
+                const tokenId = BigInt(log.topics[3]).toString();
+                rows.push({
+                  owner_id: ownerId, wallet_id: wallet.id, chain_id: 56,
+                  nft_contract: contract, minter_address: wallet.address,
+                  tx_hash: txHash, block_number: blockNumber, event_kind: q.kind, token_id: tokenId,
+                });
+                const { error } = await admin.from("hunter_activity_events").upsert({
+                  ...common, activity_type: "erc721_mint", token_id: tokenId,
+                }, { onConflict: "owner_id,tx_hash,contract_address,activity_type,token_id", ignoreDuplicates: true });
+                if (error) throw error;
               } else if (q.kind === "erc1155_single_mint") {
-                rows.push({ ...base, token_id: word(log.data, 0).toString() });
+                const tokenId = word(log.data, 0).toString();
+                const amount = word(log.data, 32).toString();
+                rows.push({
+                  owner_id: ownerId, wallet_id: wallet.id, chain_id: 56,
+                  nft_contract: contract, minter_address: wallet.address,
+                  tx_hash: txHash, block_number: blockNumber, event_kind: q.kind, token_id: tokenId,
+                });
+                const { error } = await admin.from("hunter_activity_events").upsert({
+                  ...common, activity_type: "erc1155_mint", token_id: tokenId, amount,
+                }, { onConflict: "owner_id,tx_hash,contract_address,activity_type,token_id", ignoreDuplicates: true });
+                if (error) throw error;
               } else {
-                const idsOffset = word(log.data, 0);
-                for (const tokenId of decodeArray(log.data, idsOffset)) {
-                  rows.push({ ...base, token_id: tokenId.toString() });
+                const ids = decodeArray(log.data, word(log.data, 0));
+                const amounts = decodeArray(log.data, word(log.data, 32));
+                for (let ti = 0; ti < ids.length; ti++) {
+                  const tokenId = ids[ti].toString();
+                  rows.push({
+                    owner_id: ownerId, wallet_id: wallet.id, chain_id: 56,
+                    nft_contract: contract, minter_address: wallet.address,
+                    tx_hash: txHash, block_number: blockNumber, event_kind: q.kind, token_id: tokenId,
+                  });
+                  const { error } = await admin.from("hunter_activity_events").upsert({
+                    ...common, activity_type: "erc1155_mint", token_id: tokenId,
+                    amount: (amounts[ti] ?? 0n).toString(),
+                  }, { onConflict: "owner_id,tx_hash,contract_address,activity_type,token_id", ignoreDuplicates: true });
+                  if (error) throw error;
                 }
               }
             }
