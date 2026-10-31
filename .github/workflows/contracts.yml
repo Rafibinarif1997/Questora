@@ -24,6 +24,8 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
         with:
           version: stable
+      - name: Check frontend JavaScript syntax
+        run: node --check assets/app.js && node --check assets/config.js
       - name: Build contracts
         run: forge build
       - name: Run unit tests
