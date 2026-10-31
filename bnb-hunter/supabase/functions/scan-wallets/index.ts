@@ -10,7 +10,7 @@ const BSC_RPC_URL = Deno.env.get("BSC_RPC_URL") || "https://bsc-dataseed.binance
 
 // Conservative defaults for the public BNB RPC. A failing log range is split automatically.
 const WALLET_BATCH_SIZE = 10;
-const BLOCK_BATCH_SIZE = 100;
+const BLOCK_BATCH_SIZE = 500;
 const MIN_BLOCK_SPAN = 1;
 const MAX_RPC_RETRIES = 3;
 
