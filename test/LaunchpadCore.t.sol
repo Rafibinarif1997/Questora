@@ -16,6 +16,8 @@ contract LaunchpadCoreTest {
     address private constant TEAM = address(0xBEEF);
     address private constant AIRDROP = address(0xCAFE);
 
+    receive() external payable {}
+
     RhoodFactory private factory;
     ForgeToken private token;
     BondingCurve private curve;
