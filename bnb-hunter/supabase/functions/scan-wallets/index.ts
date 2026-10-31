@@ -20,7 +20,7 @@ const ERC1155_BATCH = eventId("TransferBatch(address,address,address,uint256[],u
 const ZERO = "0x" + "0".repeat(64);
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -73,8 +73,13 @@ async function rpc(method: string, params: unknown[]) {
   throw new Error(lastError);
 }
 
-// Split a log query into smaller block windows when the RPC rejects its result size.
-async function getLogsAdaptive(filter: Record<string, unknown>, fromBlock: number, toBlock: number): Promise<any[]> {
+// Split recipient topics first, then block windows, to fit strict BSC RPC limits.
+async function getLogsAdaptive(
+  filter: Record<string, unknown>,
+  fromBlock: number,
+  toBlock: number,
+  recipientTopicIndex: number,
+): Promise<any[]> {
   try {
     return await rpc("eth_getLogs", [{
       ...filter,
@@ -83,12 +88,31 @@ async function getLogsAdaptive(filter: Record<string, unknown>, fromBlock: numbe
     }]) as any[];
   } catch (error) {
     const message = errorText(error);
-    if (!isRangeLimitError(message) || fromBlock >= toBlock) throw error;
-    const mid = Math.floor((fromBlock + toBlock) / 2);
-    const left = await getLogsAdaptive(filter, fromBlock, mid);
-    await sleep(150);
-    const right = await getLogsAdaptive(filter, mid + 1, toBlock);
-    return left.concat(right);
+    if (!isRangeLimitError(message)) throw error;
+
+    const topics = filter.topics as unknown[];
+    const recipients = topics?.[recipientTopicIndex];
+    if (Array.isArray(recipients) && recipients.length > 1) {
+      const mid = Math.ceil(recipients.length / 2);
+      const makeFilter = (subset: unknown[]) => ({
+        ...filter,
+        topics: topics.map((item, index) => index === recipientTopicIndex ? subset : item),
+      });
+      const left = await getLogsAdaptive(makeFilter(recipients.slice(0, mid)), fromBlock, toBlock, recipientTopicIndex);
+      await sleep(150);
+      const right = await getLogsAdaptive(makeFilter(recipients.slice(mid)), fromBlock, toBlock, recipientTopicIndex);
+      return left.concat(right);
+    }
+
+    if (fromBlock < toBlock) {
+      const mid = Math.floor((fromBlock + toBlock) / 2);
+      const left = await getLogsAdaptive(filter, fromBlock, mid, recipientTopicIndex);
+      await sleep(150);
+      const right = await getLogsAdaptive(filter, mid + 1, toBlock, recipientTopicIndex);
+      return left.concat(right);
+    }
+
+    throw new Error(`BSC RPC limit exceeded for one recipient at block ${fromBlock}. Configure a higher-capacity BSC_RPC_URL provider.`);
   }
 }
 
@@ -104,16 +128,17 @@ Deno.serve(async (req) => {
     if (!SUPABASE_URL) throw new Error("Missing Supabase environment variable: SUPABASE_URL");
     if (!SERVICE_ROLE_KEY) throw new Error("Missing Supabase environment variable: SUPABASE_SERVICE_ROLE_KEY");
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+    const cronHeader = req.headers.get("x-cron-secret") || "";
+    const isScheduledCall = Boolean(CRON_SECRET && cronHeader && cronHeader === CRON_SECRET);
     const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
-    if (!token) {
+
+    if (!isScheduledCall && !token) {
       return new Response(JSON.stringify({ error: "Sign in first" }), {
         status: 401, headers: { ...cors, "content-type": "application/json" },
       });
     }
 
-    // Cron uses the same service-role JWT stored in Vault and in this function secret.
-    // Dashboard requests use the signed-in user's access token.
-    const isScheduledCall = Boolean(CRON_SECRET && token === CRON_SECRET);
+    // Cron uses the dedicated x-cron-secret header; dashboard calls use the user's access token.
     let ownerIds: string[] = [];
     if (isScheduledCall) {
       const { data, error } = await admin.from("hunter_wallets").select("owner_id").eq("enabled", true);
@@ -183,7 +208,8 @@ Deno.serve(async (req) => {
           ];
 
           for (const q of queries) {
-            const logs = await getLogsAdaptive(q.filter, fromBlock, toBlock);
+            const recipientTopicIndex = q.kind === "erc721_mint" ? 2 : 3;
+            const logs = await getLogsAdaptive(q.filter, fromBlock, toBlock, recipientTopicIndex);
             const rows: Record<string, unknown>[] = [];
             for (const log of logs || []) {
               const recipientTopic = q.kind === "erc721_mint" ? log.topics?.[2] : log.topics?.[3];
