@@ -3,10 +3,9 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { id as eventId } from "npm:ethers@6";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const BSC_RPC_URL = Deno.env.get("BSC_RPC_URL") || "https://bsc-dataseed.binance.org/";
-const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 const ERC721_TRANSFER = eventId("Transfer(address,address,uint256)").toLowerCase();
 const ERC1155_SINGLE = eventId("TransferSingle(address,address,address,uint256,uint256)").toLowerCase();
 const ERC1155_BATCH = eventId("TransferBatch(address,address,address,uint256[],uint256[])").toLowerCase();
@@ -121,6 +120,7 @@ Deno.serve(async (req) => {
     }
     return new Response(JSON.stringify({ message: "Scan completed", wallets_checked: wallets.length, events_found: found, from_block: fromBlock, to_block: toBlock }), { headers: { ...cors, "content-type": "application/json" } });
   } catch (error) {
+    console.error("scan-wallets failed:", error?.stack || error?.message || String(error));
     return new Response(JSON.stringify({ error: error?.message || "Scanner failed" }), { status: 500, headers: { ...cors, "content-type": "application/json" } });
   }
 });
