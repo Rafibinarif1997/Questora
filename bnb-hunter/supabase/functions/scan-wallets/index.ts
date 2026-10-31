@@ -7,6 +7,13 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const CRON_SECRET = Deno.env.get("BNB_HUNTER_CRON_SECRET");
 const BSC_RPC_URL = Deno.env.get("BSC_RPC_URL") || "https://bsc-dataseed.binance.org/";
+
+// Conservative defaults for the public BNB RPC. A failing log range is split automatically.
+const WALLET_BATCH_SIZE = 10;
+const BLOCK_BATCH_SIZE = 100;
+const MIN_BLOCK_SPAN = 1;
+const MAX_RPC_RETRIES = 3;
+
 const ERC721_TRANSFER = eventId("Transfer(address,address,uint256)").toLowerCase();
 const ERC1155_SINGLE = eventId("TransferSingle(address,address,address,uint256,uint256)").toLowerCase();
 const ERC1155_BATCH = eventId("TransferBatch(address,address,address,uint256[],uint256[])").toLowerCase();
@@ -17,7 +24,10 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-function topicAddress(address: string) { return "0x" + address.toLowerCase().replace(/^0x/, "").padStart(64, "0"); }
+function sleep(ms: number) { return new Promise(resolve => setTimeout(resolve, ms)); }
+function topicAddress(address: string) {
+  return "0x" + address.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+}
 function word(hex: string, byteOffset: number) {
   const start = 2 + byteOffset * 2;
   return BigInt("0x" + (hex.slice(start, start + 64) || "0"));
@@ -30,85 +40,165 @@ function decodeArray(data: string, offsetBytes: bigint): bigint[] {
   for (let i = 0; i < len; i++) out.push(word(data, offset + 32 + i * 32));
   return out;
 }
-async function rpc(method: string, params: unknown[]) {
-  const response = await fetch(BSC_RPC_URL, {
-    method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-  if (!response.ok) throw new Error(`BSC RPC HTTP ${response.status}`);
-  const body = await response.json();
-  if (body.error) throw new Error(body.error.message || "BSC RPC error");
-  return body.result;
+function errorText(value: unknown) {
+  if (value instanceof Error) return value.message;
+  return String(value);
 }
+function isRangeLimitError(message: string) {
+  return /limit exceeded|too many results|query returned more than|block range|response size|result window|log response/i.test(message);
+}
+function isTemporaryRpcError(message: string) {
+  return /429|rate.?limit|too many requests|temporar|timeout|timed out|503|502|504|ECONNRESET|fetch failed/i.test(message);
+}
+async function rpc(method: string, params: unknown[]) {
+  let lastError = "Unknown RPC error";
+  for (let attempt = 0; attempt <= MAX_RPC_RETRIES; attempt++) {
+    try {
+      const response = await fetch(BSC_RPC_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!response.ok) throw new Error(`BSC RPC HTTP ${response.status}`);
+      const body = await response.json();
+      if (body.error) throw new Error(body.error.message || "BSC RPC error");
+      return body.result;
+    } catch (error) {
+      lastError = errorText(error);
+      if (!isTemporaryRpcError(lastError) || attempt === MAX_RPC_RETRIES) throw new Error(lastError);
+      await sleep(500 * (attempt + 1));
+    }
+  }
+  throw new Error(lastError);
+}
+
+// Split a log query into smaller block windows when the RPC rejects its result size.
+async function getLogsAdaptive(filter: Record<string, unknown>, fromBlock: number, toBlock: number): Promise<any[]> {
+  try {
+    return await rpc("eth_getLogs", [{
+      ...filter,
+      fromBlock: "0x" + fromBlock.toString(16),
+      toBlock: "0x" + toBlock.toString(16),
+    }]) as any[];
+  } catch (error) {
+    const message = errorText(error);
+    if (!isRangeLimitError(message) || fromBlock >= toBlock) throw error;
+    const mid = Math.floor((fromBlock + toBlock) / 2);
+    const left = await getLogsAdaptive(filter, fromBlock, mid);
+    await sleep(150);
+    const right = await getLogsAdaptive(filter, mid + 1, toBlock);
+    return left.concat(right);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (req.method !== "POST") return new Response(JSON.stringify({ error: "POST required" }), { status: 405, headers: { ...cors, "content-type": "application/json" } });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "POST required" }), {
+      status: 405, headers: { ...cors, "content-type": "application/json" },
+    });
+  }
+
   try {
     if (!SUPABASE_URL) throw new Error("Missing Supabase environment variable: SUPABASE_URL");
     if (!SERVICE_ROLE_KEY) throw new Error("Missing Supabase environment variable: SUPABASE_SERVICE_ROLE_KEY");
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
-    console.log("scan-wallets: request accepted");
     const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
-    if (!token) return new Response(JSON.stringify({ error: "Sign in first" }), { status: 401, headers: { ...cors, "content-type": "application/json" } });
-    // Supabase Cron calls this endpoint with the service-role JWT stored in Vault.
-    // Browser calls continue to require a normal authenticated user session.
-  const isScheduledCall = Boolean(CRON_SECRET && token === CRON_SECRET);
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Sign in first" }), {
+        status: 401, headers: { ...cors, "content-type": "application/json" },
+      });
+    }
+
+    // Cron uses the same service-role JWT stored in Vault and in this function secret.
+    // Dashboard requests use the signed-in user's access token.
+    const isScheduledCall = Boolean(CRON_SECRET && token === CRON_SECRET);
     let ownerIds: string[] = [];
     if (isScheduledCall) {
-      const { data: enabledWallets, error: ownersError } = await admin.from("hunter_wallets").select("owner_id").eq("enabled", true);
-      if (ownersError) throw ownersError;
-      ownerIds = [...new Set((enabledWallets || []).map((row: { owner_id: string }) => row.owner_id))];
+      const { data, error } = await admin.from("hunter_wallets").select("owner_id").eq("enabled", true);
+      if (error) throw error;
+      ownerIds = [...new Set((data || []).map((row: { owner_id: string }) => row.owner_id))];
     } else {
-      const { data: authData, error: authError } = await admin.auth.getUser(token);
-      if (authError || !authData.user) return new Response(JSON.stringify({ error: "Invalid session" }), { status: 401, headers: { ...cors, "content-type": "application/json" } });
-      ownerIds = [authData.user.id];
+      const { data, error } = await admin.auth.getUser(token);
+      if (error || !data.user) {
+        return new Response(JSON.stringify({ error: "Invalid session" }), {
+          status: 401, headers: { ...cors, "content-type": "application/json" },
+        });
+      }
+      ownerIds = [data.user.id];
     }
+
     let totalWallets = 0;
     let totalEvents = 0;
     let scannedOwners = 0;
     let firstFromBlock: number | null = null;
     let lastToBlock: number | null = null;
+
     for (const ownerId of ownerIds) {
-      const { data: wallets, error: walletError } = await admin.from("hunter_wallets").select("id,address").eq("owner_id", ownerId).eq("enabled", true);
+      const { data: wallets, error: walletError } = await admin
+        .from("hunter_wallets").select("id,address").eq("owner_id", ownerId).eq("enabled", true);
       if (walletError) throw walletError;
       if (!wallets?.length) continue;
-  
+
       const latestBlockHex = await rpc("eth_blockNumber", []);
       const latestBlock = Number(BigInt(latestBlockHex));
-      const { data: previous } = await admin.from("hunter_scan_runs").select("to_block").eq("owner_id", ownerId).eq("status", "success").order("started_at", { ascending: false }).limit(1).maybeSingle();
-      // First scan checks the latest 1,000 blocks; subsequent scans continue from the last successful checkpoint.
-      const fromBlock = previous?.to_block ? Number(previous.to_block) + 1 : Math.max(0, latestBlock - 999);
-      const toBlock = Math.min(latestBlock, fromBlock + 999);
+      const { data: previous, error: previousError } = await admin
+        .from("hunter_scan_runs").select("to_block").eq("owner_id", ownerId)
+        .eq("status", "success").order("started_at", { ascending: false }).limit(1).maybeSingle();
+      if (previousError) throw previousError;
+
+      // First scan starts at the latest 100 blocks. Later runs continue from the last successful checkpoint.
+      const fromBlock = previous?.to_block !== null && previous?.to_block !== undefined
+        ? Number(previous.to_block) + 1
+        : Math.max(0, latestBlock - (BLOCK_BATCH_SIZE - 1));
+      const toBlock = Math.min(latestBlock, fromBlock + BLOCK_BATCH_SIZE - 1);
+
       const { data: run, error: runError } = await admin.from("hunter_scan_runs").insert({
-        owner_id: ownerId, status: "running", wallets_checked: wallets.length, events_found: 0,
-        from_block: fromBlock, to_block: toBlock,
+        owner_id: ownerId,
+        status: "running",
+        wallets_checked: wallets.length,
+        events_found: 0,
+        from_block: fromBlock,
+        to_block: toBlock,
       }).select("id").single();
       if (runError) throw runError;
-  
+
       let found = 0;
       try {
-        const recipientWallets = wallets.map(w => ({ ...w, address: w.address.toLowerCase() }));
-        // Keep topic OR lists small and block ranges bounded for public RPC reliability.
-        for (let wi = 0; wi < recipientWallets.length; wi += 40) {
-          const group = recipientWallets.slice(wi, wi + 40);
-          const topics = group.map(w => topicAddress(w.address));
-          const walletByTopic = new Map(group.map(w => [topicAddress(w.address).toLowerCase(), w]));
+        const recipientWallets = wallets.map((w: { id: string; address: string }) => ({
+          ...w, address: w.address.toLowerCase(),
+        }));
+
+        for (let wi = 0; wi < recipientWallets.length; wi += WALLET_BATCH_SIZE) {
+          const group = recipientWallets.slice(wi, wi + WALLET_BATCH_SIZE);
+          const topics = group.map((w: { address: string }) => topicAddress(w.address));
+          const walletByTopic = new Map(group.map((w: { id: string; address: string }) => [
+            topicAddress(w.address).toLowerCase(), w,
+          ]));
           const queries = [
-            { kind: "erc721_mint", topic: ERC721_TRANSFER, filter: [ERC721_TRANSFER, ZERO, topics] },
-            { kind: "erc1155_single_mint", topic: ERC1155_SINGLE, filter: [ERC1155_SINGLE, null, ZERO, topics] },
-            { kind: "erc1155_batch_mint", topic: ERC1155_BATCH, filter: [ERC1155_BATCH, null, ZERO, topics] },
+            { kind: "erc721_mint", filter: { topics: [ERC721_TRANSFER, ZERO, topics] } },
+            { kind: "erc1155_single_mint", filter: { topics: [ERC1155_SINGLE, null, ZERO, topics] } },
+            { kind: "erc1155_batch_mint", filter: { topics: [ERC1155_BATCH, null, ZERO, topics] } },
           ];
+
           for (const q of queries) {
-            const logs = await rpc("eth_getLogs", [{ fromBlock: "0x" + fromBlock.toString(16), toBlock: "0x" + toBlock.toString(16), topics: q.filter }]);
+            const logs = await getLogsAdaptive(q.filter, fromBlock, toBlock);
             const rows: Record<string, unknown>[] = [];
             for (const log of logs || []) {
               const recipientTopic = q.kind === "erc721_mint" ? log.topics?.[2] : log.topics?.[3];
-              const wallet = walletByTopic.get(String(recipientTopic || "").toLowerCase());
+              const wallet = walletByTopic.get(String(recipientTopic || "").toLowerCase()) as
+                | { id: string; address: string }
+                | undefined;
               if (!wallet) continue;
               const base = {
-                owner_id: ownerId, wallet_id: wallet.id, chain_id: 56,
-                nft_contract: String(log.address).toLowerCase(), minter_address: wallet.address,
-                tx_hash: String(log.transactionHash).toLowerCase(), block_number: Number(BigInt(log.blockNumber)),
+                owner_id: ownerId,
+                wallet_id: wallet.id,
+                chain_id: 56,
+                nft_contract: String(log.address).toLowerCase(),
+                minter_address: wallet.address,
+                tx_hash: String(log.transactionHash).toLowerCase(),
+                block_number: Number(BigInt(log.blockNumber)),
                 event_kind: q.kind,
               };
               if (q.kind === "erc721_mint") {
@@ -117,42 +207,64 @@ Deno.serve(async (req) => {
                 rows.push({ ...base, token_id: word(log.data, 0).toString() });
               } else {
                 const idsOffset = word(log.data, 0);
-                for (const tokenId of decodeArray(log.data, idsOffset)) rows.push({ ...base, token_id: tokenId.toString() });
+                for (const tokenId of decodeArray(log.data, idsOffset)) {
+                  rows.push({ ...base, token_id: tokenId.toString() });
+                }
               }
             }
             for (let ri = 0; ri < rows.length; ri += 100) {
-              const part = rows.slice(ri, ri + 100);
-              const { error } = await admin.from("hunter_mint_events").upsert(part, { onConflict: "owner_id,tx_hash,nft_contract,token_id", ignoreDuplicates: true });
+              const { error } = await admin.from("hunter_mint_events")
+                .upsert(rows.slice(ri, ri + 100), {
+                  onConflict: "owner_id,tx_hash,nft_contract,token_id",
+                  ignoreDuplicates: true,
+                });
               if (error) throw error;
-              found += part.length;
+              found += Math.min(100, rows.length - ri);
             }
+            // Gentle pacing for the public shared RPC endpoint.
+            await sleep(120);
           }
         }
+
         const { error: finishError } = await admin.from("hunter_scan_runs").update({
-          status: "success", events_found: found, finished_at: new Date().toISOString(),
+          status: "success",
+          events_found: found,
+          finished_at: new Date().toISOString(),
         }).eq("id", run.id);
         if (finishError) throw finishError;
       } catch (scanError) {
         await admin.from("hunter_scan_runs").update({
-          status: "failed", events_found: found, error_message: String(scanError?.message || scanError).slice(0, 1000),
+          status: "failed",
+          events_found: found,
+          error_message: errorText(scanError).slice(0, 1000),
           finished_at: new Date().toISOString(),
         }).eq("id", run.id);
         throw scanError;
       }
-  
+
       totalWallets += wallets.length;
       totalEvents += found;
       scannedOwners++;
       firstFromBlock = firstFromBlock === null ? fromBlock : Math.min(firstFromBlock, fromBlock);
       lastToBlock = lastToBlock === null ? toBlock : Math.max(lastToBlock, toBlock);
     }
+
     return new Response(JSON.stringify({
       message: isScheduledCall ? "Scheduled scan completed" : "Scan completed",
-      owners_scanned: scannedOwners, wallets_checked: totalWallets, events_found: totalEvents,
-      from_block: firstFromBlock, to_block: lastToBlock, scheduled: isScheduledCall
+      owners_scanned: scannedOwners,
+      wallets_checked: totalWallets,
+      events_found: totalEvents,
+      from_block: firstFromBlock,
+      to_block: lastToBlock,
+      scheduled: isScheduledCall,
+      rpc_mode: "public-bsc-adaptive",
+      wallet_batch_size: WALLET_BATCH_SIZE,
+      block_batch_size: BLOCK_BATCH_SIZE,
     }), { headers: { ...cors, "content-type": "application/json" } });
   } catch (error) {
-    console.error("scan-wallets failed:", error?.stack || error?.message || String(error));
-    return new Response(JSON.stringify({ error: error?.message || "Scanner failed" }), { status: 500, headers: { ...cors, "content-type": "application/json" } });
+    console.error("scan-wallets failed:", errorText(error));
+    return new Response(JSON.stringify({ error: errorText(error) }), {
+      status: 500, headers: { ...cors, "content-type": "application/json" },
+    });
   }
 });
