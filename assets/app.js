@@ -19,6 +19,17 @@ function toast(msg){
  if(!el){el=document.createElement('div');el.className='toast';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.appendChild(el)}
  el.textContent=String(msg);el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>{el.classList.remove('show');if(el.isConnected)el.remove()},4200)
 }
+async function loadEthers(){
+ if(window.ethers)return window.ethers;
+ await new Promise((resolve,reject)=>{
+  const script=document.createElement('script');
+  script.src='https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js';
+  script.async=true;script.onload=resolve;script.onerror=()=>reject(new Error('Could not load wallet library'));
+  document.head.appendChild(script);
+ });
+ if(!window.ethers)throw new Error('Wallet library unavailable');
+ return window.ethers;
+}
 function head(title,desc,actions=''){return `<div class="page-head"><div><div class="eyebrow">RHOOD FORGE / ${esc(page.toUpperCase())}</div><h1>${title}</h1><p>${desc}</p></div><div>${actions}</div></div>`}
 function stats(items){return `<div class="stats-grid">${items.map(x=>`<div class="stat"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="change">${x[2]||''}</div></div>`).join('')}</div>`}
 function tokenList(filterable=true){return `<div class="toolbar">${filterable?`<div class="search"><input id="tokenSearch" placeholder="Search name, symbol or address…" aria-label="Search tokens"></div><select class="select" id="sortTokens"><option value="trending">Trending</option><option value="volume">Volume</option><option value="marketcap">Market cap</option><option value="new">Recently launched</option></select>`:''}<button class="btn" id="refreshBtn">↻ Refresh</button></div><div class="token-grid" id="tokenGrid">${tokens.map(card).join('')}</div>`}
@@ -128,7 +139,32 @@ if(search)search.addEventListener('input',filter);if(sort)sort.addEventListener(
 const refresh=$('#refreshBtn');if(refresh)refresh.onclick=()=>toast('Demo view refreshed. Live data requires an indexer/API.');
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-filter]').forEach(x=>x.classList.remove('active'));b.classList.add('active');let f=Number(b.dataset.filter);let chosen=f===1?tokens.filter(t=>t.tag.includes('NEW')||t.tag.includes('JUST')):f===2?tokens.filter(t=>t.progress>=80):f===3?tokens.filter(t=>t.progress===100):f===4?tokens.filter(t=>t.change.startsWith('+')):tokens;let grid=$('#tokenGrid');if(grid)grid.innerHTML=chosen.map(card).join('');if(search)search.value='';bindCardActions()});
 document.querySelectorAll('[data-rank]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-rank]').forEach(x=>x.classList.remove('active'));b.classList.add('active');toast('Leaderboard category changed. Live ranking data requires an indexer.')});
-const cf=$('#createForm');if(cf)cf.onsubmit=e=>{e.preventDefault();settingsModal('Review launch','Token preview created for '+$('#tokenName').value+' ('+$('#tokenSymbol').value.toUpperCase()+'). Real deployment is disabled until audited contracts and a wallet provider are configured.')};
+const cf=$('#createForm');if(cf)cf.onsubmit=async e=>{
+ e.preventDefault();
+ const name=$('#tokenName').value.trim(),symbol=$('#tokenSymbol').value.trim().toUpperCase();
+ if(!walletAddress){await connectWallet();if(!walletAddress)return}
+ const factoryAddress=C.contracts?.factory;
+ if(!factoryAddress||!/^0x[a-fA-F0-9]{40}$/.test(factoryAddress)){toast('Factory address is not configured yet. Deploy the testnet factory, then add its address to assets/config.js.');return}
+ const submit=cf.querySelector('button[type="submit"]');if(submit){submit.disabled=true;submit.textContent='Preparing transaction…'}
+ try{
+  const ethers=await loadEthers(),provider=new ethers.BrowserProvider(window.ethereum),network=await provider.getNetwork();
+  if(network.chainId!==46630n)throw new Error('Switch wallet to Robinhood Chain Testnet (46630).');
+  const signer=await provider.getSigner();
+  const abi=['function launchToken(string name,string symbol,address teamRecipient,address airdropRecipient) returns (address tokenAddress,address curveAddress)','event TokenLaunched(address indexed token,address indexed curve,address indexed creator,string name,string symbol,address teamRecipient,address airdropRecipient)'];
+  const factory=new ethers.Contract(factoryAddress,abi,signer);
+  const tx=await factory.launchToken(name,symbol,walletAddress,walletAddress);
+  toast('Launch transaction submitted. Waiting for confirmation…');
+  const receipt=await tx.wait();
+  const iface=new ethers.Interface(abi);let launched=null;
+  for(const log of receipt.logs){try{const parsed=iface.parseLog(log);if(parsed&&parsed.name==='TokenLaunched'){launched=parsed.args;break}}catch(_){}}
+  if(!launched)throw new Error('Transaction confirmed, but TokenLaunched event was not found. Check the explorer.');
+  const tokenAddress=launched.token,curveAddress=launched.curve;
+  const out=$('#launchResult');
+  if(out)out.innerHTML='<div class="notice"><strong>Token deployed successfully.</strong><br>Token: <span class="mono">'+tokenAddress+'</span><br>Curve: <span class="mono">'+curveAddress+'</span><br><a style="color:var(--lime)" target="_blank" rel="noreferrer" href="'+C.network.explorer+'/address/'+tokenAddress+'">View token on explorer ↗</a><br><a style="color:var(--lime)" href="trade.html?token='+encodeURIComponent(symbol)+'&address='+tokenAddress+'&curve='+curveAddress+'">Open trade terminal ↗</a></div>';
+  toast('Token launch confirmed on Robinhood Chain Testnet.');
+ }catch(err){toast(err?.shortMessage||err?.reason||err?.message||'Token launch failed.')}
+ finally{if(submit){submit.disabled=false;submit.textContent='Launch token ↗'}}
+};
 const cg=$('#createGuild');if(cg)cg.onclick=()=>settingsModal('Create a guild','A guild will need an authenticated profile, backend storage, membership rules, referral attribution and anti-abuse controls. These are not connected in demo mode.');
 document.querySelectorAll('.joinGuild').forEach(b=>b.onclick=()=>settingsModal(b.dataset.name,'Guild details and membership requests require a signed-in account and a live backend.'));
 const gs=$('#guildSearch');if(gs)gs.oninput=()=>document.querySelectorAll('.guild-card').forEach(c=>c.style.display=c.dataset.guild.includes(gs.value.toLowerCase())?'':'none');
