@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080d12">
+<title>BNB HUNTER — On-chain intelligence</title>
+<style>
+:root{color-scheme:dark;--bg:#080d12;--panel:#101820;--panel2:#131f28;--line:#23323c;--text:#edf5f4;--muted:#8da1a8;--green:#a5f36b;--cyan:#6de3dc;--red:#ff7777}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% -20%,#18352c 0,transparent 38%),var(--bg);color:var(--text);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+button,input{font:inherit}button{cursor:pointer}.shell{max-width:1200px;margin:auto;padding:26px 22px 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:20px}.brand{display:flex;align-items:center;gap:12px}.mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,var(--green),#4bb99d);display:grid;place-items:center;color:#09120d;font-weight:950;font-size:20px;box-shadow:0 0 30px #a5f36b22}.brand h1{font-size:17px;letter-spacing:.13em;margin:0}.brand small{display:block;color:var(--muted);font-size:11px;letter-spacing:.08em}.status{border:1px solid #695b34;background:#282315;color:#e9c978;padding:7px 11px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.08em}.hero{padding:35px 0 25px;display:flex;align-items:end;justify-content:space-between;gap:20px}.eyebrow{color:var(--green);font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.hero h2{font-size:clamp(27px,5vw,42px);line-height:1.08;letter-spacing:-.04em;margin:9px 0}.hero p{color:var(--muted);max-width:600px;margin:0}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.card{background:linear-gradient(145deg,#142029,#0e151c);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}.metric-label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.1em}.metric{font-size:30px;font-weight:750;letter-spacing:-.04em;margin:7px 0 2px}.metric-note{color:var(--muted);font-size:11px}.section{margin-top:18px}.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.section-head h3{font-size:15px;margin:0}.sub{color:var(--muted);font-size:12px}.columns{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}.inputrow{display:flex;gap:9px;margin-top:14px}.input{width:100%;min-width:0;background:#080f15;border:1px solid var(--line);border-radius:10px;padding:12px;color:var(--text);outline:none}.input:focus{border-color:var(--green)}.btn{border:0;border-radius:10px;background:var(--green);color:#0a140d;padding:11px 15px;font-weight:800;white-space:nowrap}.btn.secondary{background:#1c2a32;color:var(--text);border:1px solid var(--line)}.btn:disabled{opacity:.5;cursor:not-allowed}.list{display:flex;flex-direction:column;gap:8px;margin-top:14px}.item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;background:#0b1218;border:1px solid #1e2b34;border-radius:11px}.addr{font-family:ui-monospace,monospace;font-size:12px;overflow-wrap:anywhere}.pill{font-size:10px;border:1px solid #35533d;color:var(--green);padding:4px 7px;border-radius:99px}.empty{padding:22px 12px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:11px}.notice{padding:13px 14px;border:1px solid #6a5730;background:#211d13;color:#e7d29a;border-radius:12px;margin-top:16px}.notice strong{color:#fff0bd}.auth{max-width:460px;margin:24px auto}.hidden{display:none!important}.small{font-size:11px;color:var(--muted)}.footer{color:#65777e;text-align:center;margin-top:30px;font-size:11px}
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.columns{grid-template-columns:1fr}.hero{align-items:start;flex-direction:column}}@media(max-width:430px){.shell{padding:18px 13px 40px}.grid{gap:8px}.card{padding:13px}.metric{font-size:25px}.top{align-items:flex-start}.brand h1{font-size:14px}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="top"><div class="brand"><div class="mark">H</div><div><h1>BNB HUNTER</h1><small>ON-CHAIN INTELLIGENCE / BNB CHAIN</small></div></div><div class="status" id="systemStatus">BACKEND NOT CONNECTED</div></header>
+<section class="hero"><div><div class="eyebrow">Discovery terminal · Chain ID 56</div><h2>Find the mint.<br>Before the crowd.</h2><p>Track selected wallets, detect NFT mint activity and review opportunities. This first build is monitoring-only; no wallet signing or transactions.</p></div></section>
+<div class="grid">
+<div class="card"><div class="metric-label">Tracked wallets</div><div class="metric" id="walletCount">—</div><div class="metric-note">Your private watchlist</div></div>
+<div class="card"><div class="metric-label">Mint events found</div><div class="metric" id="eventCount">—</div><div class="metric-note">Detected from tracked wallets</div></div>
+<div class="card"><div class="metric-label">Last scan</div><div class="metric" id="lastScan">—</div><div class="metric-note">Scheduled scanner not deployed</div></div>
+<div class="card"><div class="metric-label">Network</div><div class="metric">BNB</div><div class="metric-note">BNB Smart Chain · Mainnet</div></div>
+</div>
+<div class="notice" id="setupNotice"><strong>Setup required:</strong> connect the existing Supabase project before adding wallets. The scanner is not active yet; no sample results are shown as real activity.</div>
+<section class="auth card" id="authPanel"><div class="section-head"><h3>Connect your dashboard</h3><span class="pill">Private access</span></div><p class="sub">Enter your email to receive a secure sign-in link from Supabase.</p><form id="loginForm"><input class="input" id="email" type="email" placeholder="you@example.com" required><div class="inputrow"><button class="btn" id="loginBtn" type="submit">Send sign-in link</button></div></form><p class="small" id="authMessage">Your wallet watchlist will be private to your account.</p></section>
+<main id="appPanel" class="hidden">
+<div class="columns section">
+<section class="card"><div class="section-head"><h3>Smart wallet watchlist</h3><span class="sub">BNB Chain addresses</span></div><form id="walletForm"><div class="inputrow"><input class="input" id="walletAddress" placeholder="0x wallet address" minlength="42" maxlength="42" required><button class="btn" type="submit">Add wallet</button></div><input class="input" id="walletLabel" placeholder="Label (optional)" style="margin-top:9px"></form><div class="list" id="walletList"><div class="empty">Your watchlist is empty.</div></div></section>
+<section class="card"><div class="section-head"><h3>Latest discoveries</h3><span class="sub">Read-only</span></div><div class="list" id="eventList"><div class="empty">No mint events yet. Scanner setup is pending.</div></div></section>
+</div>
+<div class="card section"><div class="section-head"><h3>Agent status</h3><span class="pill">MONITORING ONLY</span></div><p class="sub">Wallet tracking and dashboard are being connected. Automated chain scanning, AI scoring and Telegram alerts will be enabled after the RPC/indexer and scheduled Edge Function are configured.</p><button class="btn secondary" id="logoutBtn">Sign out</button></div>
+</main>
+<div class="footer">BNB HUNTER · Built for discovery, not guaranteed profit. Never share seed phrases or private keys.</div>
+</div>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+const cfg=window.BNB_HUNTER_CONFIG||{};
+const ready=cfg.supabaseUrl&&cfg.supabaseAnonKey&&!cfg.supabaseUrl.includes("YOUR_PROJECT")&&!cfg.supabaseAnonKey.includes("YOUR_SUPABASE");
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let client=null;
+if(!ready||!window.supabase){$("systemStatus").textContent="BACKEND NOT CONNECTED";$("authPanel").classList.add("hidden");$("setupNotice").innerHTML="<strong>Supabase setup needed:</strong> add your existing Project URL and publishable/anon key to <code>config.js</code>. Do not use the service_role key here.";return;}
+client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
+$("systemStatus").textContent="SUPABASE READY";
+$("setupNotice").textContent="Supabase configured. Sign in to manage your private wallet watchlist.";
+async function refresh(){
+ const {data:{user}}=await client.auth.getUser();
+ if(!user){$("authPanel").classList.remove("hidden");$("appPanel").classList.add("hidden");return;}
+ $("authPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");
+ const [w,e,s]=await Promise.all([
+  client.from("hunter_wallets").select("id,address,label,enabled,created_at").order("created_at",{ascending:false}),
+  client.from("hunter_mint_events").select("id,nft_contract,minter_address,token_id,tx_hash,detected_at").order("detected_at",{ascending:false}).limit(8),
+  client.from("hunter_scan_runs").select("status,finished_at").order("started_at",{ascending:false}).limit(1)
+ ]);
+ if(w.error||e.error||s.error){$("setupNotice").textContent="Database setup pending: run bnb-hunter/supabase/schema.sql in Supabase SQL Editor. "+(w.error?.message||e.error?.message||s.error?.message);return;}
+ const wallets=w.data||[], events=e.data||[], scans=s.data||[];
+ $("walletCount").textContent=wallets.length;$("eventCount").textContent=events.length;
+ $("lastScan").textContent=scans[0]?.finished_at?new Date(scans[0].finished_at).toLocaleString():"Not run";
+ $("walletList").innerHTML=wallets.length?wallets.map(x=>'<div class="item"><div><div class="addr">'+esc(x.address)+'</div><div class="small">'+esc(x.label||"Unlabelled wallet")+'</div></div><button class="btn secondary" data-remove="'+esc(x.id)+'" style="padding:7px 10px">Remove</button></div>').join(""):'<div class="empty">No wallets added yet.</div>';
+ $("eventList").innerHTML=events.length?events.map(x=>'<div class="item"><div><div class="addr">'+esc(x.nft_contract)+'</div><div class="small">Minter '+esc(x.minter_address)+' · Token '+esc(x.token_id??"—")+'</div></div><span class="pill">MINT</span></div>').join(""):'<div class="empty">No mint events recorded yet.</div>';
+}
+$("loginForm").addEventListener("submit",async ev=>{ev.preventDefault();$("loginBtn").disabled=true;$("authMessage").textContent="Sending sign-in link…";const {error}=await client.auth.signInWithOtp({email:$("email").value,options:{emailRedirectTo:location.href}});$("authMessage").textContent=error?error.message:"Check your email for the secure sign-in link.";$("loginBtn").disabled=false;});
+$("walletForm").addEventListener("submit",async ev=>{ev.preventDefault();const address=$("walletAddress").value.trim();if(!/^0x[a-fA-F0-9]{40}$/.test(address)){alert("Enter a valid BNB Chain address.");return;}const {data:{user}}=await client.auth.getUser();const {error}=await client.from("hunter_wallets").insert({owner_id:user.id,address:address.toLowerCase(),label:$("walletLabel").value.trim()});if(error){alert(error.message);return;}$("walletAddress").value="";$("walletLabel").value="";await refresh();});
+$("walletList").addEventListener("click",async ev=>{const id=ev.target?.dataset?.remove;if(!id)return;const {error}=await client.from("hunter_wallets").delete().eq("id",id);if(error)alert(error.message);else refresh();});
+$("logoutBtn").addEventListener("click",async()=>{await client.auth.signOut();refresh();});
+client.auth.onAuthStateChange(()=>setTimeout(refresh,0));refresh();
+})();
+</script>
+</body></html>
