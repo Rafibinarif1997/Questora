@@ -61,6 +61,33 @@ contract LaunchpadCoreTest {
         require(actual == expected, "quote mismatch");
     }
 
+    function testBuySlippageProtection() public {
+        vm.prank(ALICE);
+        (bool ok,) = address(curve).call{value: 1 ether}(
+            abi.encodeWithSelector(BondingCurve.buy.selector, type(uint256).max)
+        );
+        require(!ok, "slippage guard did not revert");
+    }
+
+    function testGraduationThresholdPausesBuysButAllowsSells() public {
+        vm.deal(ALICE, 200 ether);
+        vm.prank(ALICE);
+        uint256 bought = curve.buy{value: 102 ether}(1);
+        require(curve.graduationReady(), "graduation threshold not reached");
+
+        vm.prank(ALICE);
+        (bool buyOk,) = address(curve).call{value: 0.1 ether}(
+            abi.encodeWithSelector(BondingCurve.buy.selector, 1)
+        );
+        require(!buyOk, "buy should pause after threshold");
+
+        vm.prank(ALICE);
+        token.approve(address(curve), bought);
+        vm.prank(ALICE);
+        uint256 ethOut = curve.sell(bought / 2, 1);
+        require(ethOut > 0, "sell should remain available");
+    }
+
     function testFactoryTracksLaunch() public view {
         require(factory.launchCount() == 1, "launch count mismatch");
         require(factory.curveForToken(address(token)) == address(curve), "curve mapping mismatch");
