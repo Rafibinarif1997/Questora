@@ -57,7 +57,7 @@ begin
           'x-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'bnb_hunter_service_role_key')
         ),
         body := '{}'::jsonb,
-        timeout_milliseconds := 10000
+        timeout_milliseconds := 120000
       );
     $job$
   );
