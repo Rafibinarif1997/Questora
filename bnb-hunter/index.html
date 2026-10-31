@@ -68,7 +68,7 @@ $("bulkImportBtn").addEventListener("click",async()=>{
  const btn=$("bulkImportBtn"), status=$("bulkStatus");
  const raw=$("bulkWallets").value.trim();
  if(!raw){status.textContent="Paste wallet addresses first.";return;}
- const candidates=raw.split(/[\\s,;]+/).map(x=>x.trim()).filter(Boolean);
+ const candidates=raw.split(/[\s,;]+/).map(x=>x.trim()).filter(Boolean);
  const valid=[...new Set(candidates.filter(x=>/^0x[a-fA-F0-9]{40}$/.test(x)).map(x=>x.toLowerCase()))];
  const invalid=candidates.length-candidates.filter(x=>/^0x[a-fA-F0-9]{40}$/.test(x)).length;
  const duplicates=candidates.filter(x=>/^0x[a-fA-F0-9]{40}$/.test(x)).length-valid.length;
